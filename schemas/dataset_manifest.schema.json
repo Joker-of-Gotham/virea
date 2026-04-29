@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Joker-of-Gotham/virea/schemas/dataset_manifest.schema.json",
+  "title": "VIREA Dataset Manifest",
+  "type": "object",
+  "required": ["schema_version", "dataset", "samples"],
+  "properties": {
+    "schema_version": { "const": "virea.dataset_manifest.v0.1.0" },
+    "dataset": { "type": "string" },
+    "samples": {
+      "type": "array",
+      "items": { "$ref": "motion_sample.schema.json" }
+    }
+  },
+  "additionalProperties": true
+}

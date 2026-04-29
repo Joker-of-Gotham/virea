@@ -1,0 +1,34 @@
+project:
+  name: virea
+  schema_version: virea.project.v0.1.0
+
+paths:
+  data_root_env: VIREA_DATA_ROOT
+  raw_root_env: VIREA_RAW_ROOT
+  processed_root_env: VIREA_PROCESSED_ROOT
+  data_source_env: VIREA_DATA_SOURCE
+  vrm_model_root_env: VIREA_VRM_MODEL_ROOT
+  # Local fallback for the current workspace. Environment variables override it.
+  default_workspace_data_root: D:/AI-Program-Project/LLM-driven-VRM/vrm_motion/runtime/datasets
+  default_vrm_model_root: D:/AI-Program-Project/LLM-driven-VRM/vrm_motion/vrm_model
+  # Processed data defaults to this repository's ignored data/ directory so the
+  # reference LLM-driven-VRM tree is not modified unless explicitly requested.
+  default_processed_root: data/virea_processed
+  processed_subdir: virea_processed
+
+data_sources:
+  full:
+    label: Full local raw datasets
+    raw_root: D:/AI-Program-Project/LLM-driven-VRM/vrm_motion/runtime/datasets/raw
+    processed_root: data/virea_processed/full
+    description: Uses the complete local raw dataset directory provided outside this repository.
+  demo:
+    label: Local demo raw fixture
+    raw_root: demo/raw
+    processed_root: demo/processed
+    description: Uses a small same-layout fixture under virea/demo/raw for end-to-end tests.
+
+runtime:
+  target_fps: 30
+  preview_max_frames: 180
+  processing_version: v0.1.0

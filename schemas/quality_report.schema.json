@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Joker-of-Gotham/virea/schemas/quality_report.schema.json",
+  "title": "VIREA QualityReport",
+  "type": "object",
+  "required": ["schema_valid", "finite", "frame_count", "joint_count", "status"],
+  "properties": {
+    "schema_valid": { "type": "boolean" },
+    "finite": { "type": "boolean" },
+    "frame_count": { "type": "integer", "minimum": 0 },
+    "joint_count": { "type": "integer", "minimum": 0 },
+    "bbox_min": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+    "bbox_max": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+    "root_velocity_mean": { "type": "number" },
+    "root_velocity_max": { "type": "number" },
+    "ground_penetration_ratio": { "type": "number" },
+    "status": { "enum": ["passed", "suspicious", "failed"] }
+  },
+  "additionalProperties": true
+}

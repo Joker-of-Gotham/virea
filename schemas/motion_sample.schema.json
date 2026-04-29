@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Joker-of-Gotham/virea/schemas/motion_sample.schema.json",
+  "title": "VIREA MotionSample",
+  "type": "object",
+  "required": ["schema_version", "motion_uid", "source", "time", "skeleton", "files", "quality"],
+  "properties": {
+    "schema_version": { "const": "virea.motion_sample.v0.1.0" },
+    "motion_uid": { "type": "string" },
+    "source": {
+      "type": "object",
+      "required": ["dataset", "source_id", "source_path", "source_format"],
+      "properties": {
+        "dataset": { "type": "string" },
+        "source_id": { "type": "string" },
+        "source_path": { "type": "string" },
+        "source_format": { "type": "string" },
+        "license_family": { "type": ["string", "null"] },
+        "citation_keys": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "time": {
+      "type": "object",
+      "required": ["num_frames", "start_frame", "end_frame"],
+      "properties": {
+        "fps": { "type": ["number", "null"] },
+        "num_frames": { "type": "integer", "minimum": 0 },
+        "duration_sec": { "type": "number", "minimum": 0 },
+        "start_frame": { "type": "integer", "minimum": 0 },
+        "end_frame": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "skeleton": {
+      "type": "object",
+      "required": ["canonical_skeleton", "target_skeleton", "coordinate_system", "rotation_format", "unit"],
+      "properties": {
+        "source_skeleton": { "type": ["string", "null"] },
+        "canonical_skeleton": { "type": "string" },
+        "target_skeleton": { "type": "string" },
+        "coordinate_system": { "type": "string" },
+        "rotation_format": { "type": "string" },
+        "unit": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "annotations": { "type": "array", "items": { "type": "object" } },
+    "files": {
+      "type": "object",
+      "required": ["canonical_motion", "vrm_motion", "quality_report", "metadata"],
+      "properties": {
+        "canonical_motion": { "type": "string" },
+        "vrm_motion": { "type": "string" },
+        "quality_report": { "type": "string" },
+        "metadata": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "quality": { "type": "object" },
+    "processing": { "type": "object" }
+  },
+  "additionalProperties": true
+}

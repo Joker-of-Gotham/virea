@@ -1,0 +1,56 @@
+licenses:
+  amass_non_commercial:
+    commercial_use: false
+    public_redistribution: false
+    derived_motion_public_release: check_required
+    requires_registration: true
+    notes: Use only according to the original AMASS and sub-dataset terms.
+
+  babel_non_commercial:
+    commercial_use: false
+    public_redistribution: false
+    derived_motion_public_release: check_required
+    requires_registration: true
+    notes: BABEL labels must remain traceable to BABEL and AMASS terms.
+
+  beat_non_commercial:
+    commercial_use: false
+    public_redistribution: check_required
+    derived_motion_public_release: check_required
+    requires_registration: true
+    notes: BEAT redistribution and derivative release require dataset-term review.
+
+  grab_non_commercial:
+    commercial_use: false
+    public_redistribution: check_required
+    derived_motion_public_release: check_required
+    requires_registration: true
+    notes: GRAB includes body, hand, object, and contact data with source-specific terms.
+
+  humanml3d_research:
+    commercial_use: check_required
+    public_redistribution: check_required
+    derived_motion_public_release: check_required
+    requires_registration: false
+    notes: Preserve HumanML3D source citation and verify redistribution scope before release.
+
+  motionx_research:
+    commercial_use: check_required
+    public_redistribution: check_required
+    derived_motion_public_release: check_required
+    requires_registration: false
+    notes: Motion-X contains multiple upstream sources; keep sub-source provenance.
+
+  cc_by_nc_4_0:
+    commercial_use: false
+    public_redistribution: check_required
+    derived_motion_public_release: check_required
+    requires_registration: false
+    notes: Creative Commons Attribution-NonCommercial 4.0; do not use commercially.
+
+  public_synthetic:
+    commercial_use: true
+    public_redistribution: true
+    derived_motion_public_release: true
+    requires_registration: false
+    notes: Reserved for tiny synthetic fixtures.

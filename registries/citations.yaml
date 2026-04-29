@@ -1,0 +1,35 @@
+citations:
+  amass_2019:
+    title: AMASS Archive of Motion Capture as Surface Shapes
+    year: 2019
+    url: https://arxiv.org/abs/1904.03278
+
+  babel_2021:
+    title: BABEL Bodies, Action and Behavior with English Labels
+    year: 2021
+    url: https://arxiv.org/abs/2106.09696
+
+  beat_2022:
+    title: BEAT A Large-Scale Semantic and Emotional Multi-Modal Dataset
+    year: 2022
+    url: https://arxiv.org/abs/2203.05297
+
+  grab_2020:
+    title: GRAB A Dataset of Whole-Body Human Grasping of Objects
+    year: 2020
+    url: https://grab.is.tue.mpg.de/
+
+  humanml3d_2022:
+    title: Generating Diverse and Natural 3D Human Motions from Text
+    year: 2022
+    url: https://arxiv.org/abs/2204.14109
+
+  motionx_2023:
+    title: Motion-X A Large-scale 3D Expressive Whole-body Human Motion Dataset
+    year: 2023
+    url: https://arxiv.org/abs/2307.00818
+
+  sentiavatar_2026:
+    title: SentiAvatar Towards Expressive and Interactive Digital Humans
+    year: 2026
+    url: https://arxiv.org/abs/2604.02908

@@ -1,0 +1,142 @@
+datasets:
+  amass:
+    name: AMASS
+    full_name: Archive of Motion Capture as Surface Shapes
+    type: motion_prior
+    raw_dir: amass
+    adapter: virea.data.adapters.amass.AMASSAdapter
+    license_family: amass_non_commercial
+    citation_keys: [amass_2019]
+    native_representations:
+      - smplh_axis_angle_npz
+      - humanact12_positions_npy
+    modalities:
+      body: true
+      hands: true
+      face: false
+      audio: false
+      text: false
+      emotion: false
+      object: false
+
+  babel:
+    name: BABEL
+    full_name: Bodies, Action and Behavior with English Labels
+    type: action_language_over_amass
+    raw_dir: babel
+    adapter: virea.data.adapters.babel.BABELAdapter
+    license_family: babel_non_commercial
+    citation_keys: [babel_2021, amass_2019]
+    native_representations:
+      - babel_annotation_json
+      - smplh_axis_angle_npz
+    modalities:
+      body: true
+      hands: true
+      face: false
+      audio: false
+      text: true
+      emotion: false
+      object: false
+
+  beat:
+    name: BEAT
+    full_name: Body-Expression-Audio-Text Dataset
+    type: conversational_gesture
+    raw_dir: beat
+    adapter: virea.data.adapters.beat.BEATAdapter
+    license_family: beat_non_commercial
+    citation_keys: [beat_2022]
+    native_representations:
+      - beat_bvh_axis_angle_npz
+      - beat_hf_text_audio
+    modalities:
+      body: true
+      hands: false
+      face: true
+      audio: true
+      text: true
+      emotion: true
+      object: false
+
+  grab:
+    name: GRAB
+    full_name: GRAB Whole-Body Human Grasping Dataset
+    type: object_interaction
+    raw_dir: grab
+    adapter: virea.data.adapters.grab.GRABAdapter
+    license_family: grab_non_commercial
+    citation_keys: [grab_2020]
+    native_representations:
+      - smplx_fullpose_npz
+      - object_pose_contact
+    modalities:
+      body: true
+      hands: true
+      face: true
+      audio: false
+      text: false
+      emotion: false
+      object: true
+
+  humanml3d:
+    name: HumanML3D
+    full_name: HumanML3D Motion-Language Dataset
+    type: text_to_motion
+    raw_dir: humanml3d
+    adapter: virea.data.adapters.humanml3d.HumanML3DAdapter
+    license_family: humanml3d_research
+    citation_keys: [humanml3d_2022]
+    native_representations:
+      - humanml3d_263d_parquet
+    modalities:
+      body: true
+      hands: false
+      face: false
+      audio: false
+      text: true
+      emotion: false
+      object: false
+
+  motionx:
+    name: Motion-X
+    full_name: Motion-X Expressive Whole-Body Motion Dataset
+    type: expressive_whole_body
+    raw_dir: motionx
+    adapter: virea.data.adapters.motionx.MotionXAdapter
+    license_family: motionx_research
+    citation_keys: [motionx_2023]
+    native_representations:
+      - smplx_322_npy
+      - frame_level_body_hand_face_text
+    modalities:
+      body: true
+      hands: true
+      face: true
+      audio: false
+      text: true
+      emotion: true
+      object: false
+
+  susuinteracts:
+    name: SuSuInterActs
+    full_name: SentiAvatar SuSuInterActs
+    type: conversational_avatar
+    raw_dir: SuSuInterActs
+    adapter: virea.data.adapters.susuinteracts.SuSuInterActsAdapter
+    license_family: cc_by_nc_4_0
+    citation_keys: [sentiavatar_2026]
+    native_representations:
+      - susu_retarget_maya_6d_body_hands_m_npy
+      - susu_chonglu_6d_body_hands_cm_positions_npy
+      - arkit_51_face_npy
+      - wav_16khz
+      - chinese_dialogue_text
+    modalities:
+      body: true
+      hands: true
+      face: true
+      audio: true
+      text: true
+      emotion: true
+      object: false

@@ -1,0 +1,11 @@
+pipeline:
+  schema_version: virea.preview_pipeline.v0.1.0
+  target_fps: 30
+  max_preview_frames: 180
+  persist_processed_by_default: false
+
+stages:
+  raw_preview:
+    description: Inspect the source-native motion before conversion.
+  processed_preview:
+    description: Convert source-native data to VIREA canonical and VRM preview payloads.
