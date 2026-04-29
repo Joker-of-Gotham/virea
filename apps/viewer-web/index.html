@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VIREA Dataset Motion Workbench</title>
+    <link rel="stylesheet" href="/ui/styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/build/three.module.js",
+          "three/addons/": "/vendor/three/examples/jsm/",
+          "@pixiv/three-vrm": "/vendor/three-vrm/lib/three-vrm.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">VIREA Motion Data Infrastructure</p>
+          <h1>Motion Workbench</h1>
+          <p class="lede">
+            Inspect heterogeneous source motion before conversion, then compare it with the
+            VIREA canonical / VRM-centered preview produced by the processing pipeline.
+          </p>
+        </div>
+        <div class="hero-actions">
+          <button id="themeToggle" type="button">Dark Theme</button>
+          <div class="health" id="health">Connecting...</div>
+        </div>
+      </section>
+
+      <section class="controls">
+        <label>
+          Source
+          <select id="dataSourceSelect"></select>
+        </label>
+        <label>
+          Dataset
+          <select id="datasetSelect"></select>
+        </label>
+        <label>
+          Search
+          <input id="queryInput" placeholder="sample id, text, object..." />
+        </label>
+        <label>
+          Max frames
+          <input id="maxFramesInput" type="number" min="1" max="1200" placeholder="leave blank for full clip" />
+        </label>
+        <label class="toggle">
+          <span>Show trails</span>
+          <input id="showTrailsToggle" type="checkbox" checked />
+        </label>
+        <label class="toggle">
+          <span>Show hands</span>
+          <input id="showHandsToggle" type="checkbox" />
+        </label>
+        <button id="searchButton">Load Samples</button>
+        <button id="persistButton" title="Persist processed NPZ/JSON artifacts under VIREA processed root">
+          Persist Processed
+        </button>
+      </section>
+
+      <section class="content">
+        <aside class="samples">
+          <div class="panel-title">Samples</div>
+          <div id="sampleList" class="sample-list"></div>
+        </aside>
+
+        <section class="viewer">
+          <div class="sample-header">
+            <div>
+              <div class="panel-title">Selected Sample</div>
+              <h2 id="sampleTitle">No sample selected</h2>
+              <p id="sampleText" class="sample-text"></p>
+            </div>
+            <div class="timeline">
+              <label for="frameSlider">Frame <span id="frameLabel">0</span></label>
+              <input id="frameSlider" type="range" min="0" max="0" value="0" />
+              <button id="playButton" type="button">Play</button>
+            </div>
+          </div>
+
+          <div class="compare-grid">
+            <article class="stage-card">
+              <header>
+                <span>Before</span>
+                <strong>source preview</strong>
+              </header>
+              <canvas id="rawCanvas" width="640" height="520"></canvas>
+              <pre id="rawMeta"></pre>
+            </article>
+            <article class="stage-card">
+              <header>
+                <span>After</span>
+                <strong>canonical / VRM preview</strong>
+              </header>
+              <canvas id="processedCanvas" width="640" height="520"></canvas>
+              <pre id="processedMeta"></pre>
+            </article>
+          </div>
+        </section>
+
+      </section>
+
+      <section class="model-panel">
+        <div class="model-toolbar">
+          <div>
+            <div class="panel-title">VRM Import</div>
+            <h2>Avatar Model</h2>
+          </div>
+          <div class="model-actions">
+            <label for="modelFileInput">Model file</label>
+            <input id="modelFileInput" type="file" accept=".vrm,.glb,.gltf" />
+            <button id="resetModelButton" type="button">Reset View</button>
+          </div>
+        </div>
+        <div class="model-timeline">
+          <label for="modelFrameSlider">VRM Frame <span id="modelFrameLabel">0</span></label>
+          <input id="modelFrameSlider" type="range" min="0" max="0" value="0" />
+          <button id="modelPlayButton" type="button">Play</button>
+        </div>
+        <canvas id="modelCanvas" width="1280" height="720"></canvas>
+        <pre id="modelStatus">No model loaded.</pre>
+      </section>
+    </main>
+    <script src="/ui/app.js" type="module"></script>
+  </body>
+</html>
