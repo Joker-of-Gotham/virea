@@ -18,6 +18,36 @@ For Chinese documentation, see [doc/README.zh-CN.md](doc/README.zh-CN.md).
 
 **Current stage:** early research scaffold and data infrastructure design.
 
+## Implemented Bootstrap Components
+
+The repository now includes an initial modular data-preview scaffold:
+
+- Dataset registry, license registry, citation registry, and skeleton registry.
+- Dataset adapters for AMASS, BABEL, BEAT, GRAB, HumanML3D, Motion-X, and SuSuInterActs.
+- Shape-specific motion codecs instead of dataset-name-driven conversion branches.
+- Two preview pipelines: source-native `raw_preview` and canonical / VRM-centered `processed_preview`.
+- Two selectable data sources: `full` for the complete local raw directory and `demo` for a same-layout fixture under `demo/raw`.
+- A FastAPI runtime plus a unified web frontend under `apps/viewer-web/`.
+- Local `three.js` / `three-vrm` `.vrm` import with humanoid pose driving from the processed VRM motion payload.
+- Synchronized timeline controls for before / after / VRM avatar playback, plus light and dark viewer themes.
+- Interactive CLI, demo builder, full/demo conversion command, smoke script, and mathematical verification command.
+- JSON schemas for processed `MotionSample`, dataset manifest, and quality report records.
+- Full-clip previews by default; frame limiting only happens when `max_frames` is explicitly supplied.
+
+Detailed Chinese implementation notes are in
+[doc/data-pipeline.zh-CN.md](doc/data-pipeline.zh-CN.md). The SuSuInterActs
+root-scale and skeleton-alignment audit is documented in
+[doc/susu-pipeline-audit.zh-CN.md](doc/susu-pipeline-audit.zh-CN.md).
+
+Minimal local run:
+
+```powershell
+$env:PYTHONPATH = "D:\AI-Program-Project\virea\src"
+python -m virea.cli build-demo --overwrite
+python -m virea.cli convert --data-source demo --continue-on-error --report demo\conversion-report.json
+python -m virea.cli serve --data-source demo --host 127.0.0.1 --port 8014
+```
+
 This repository is not yet a final model release. The first milestone is to
 construct a reliable **VRM motion-centered data platform** before committing to
 any specific model family such as diffusion, flow matching, VQ-VAE,
@@ -670,6 +700,8 @@ pip install -e ".[dev]"
 
 ```bash
 export VIREA_DATA_ROOT=/path/to/virea_data
+export VIREA_VRM_MODEL_ROOT=/path/to/vrm_model
+export VIREA_LLM_DRIVEN_VRM_ROOT=/path/to/LLM-driven-VRM
 
 export AMASS_ROOT=$VIREA_DATA_ROOT/raw/amass
 export BABEL_ROOT=$VIREA_DATA_ROOT/raw/babel
@@ -682,6 +714,8 @@ export SUSUINTERACTS_ROOT=$VIREA_DATA_ROOT/raw/susuinteracts
 
 ```powershell
 $env:VIREA_DATA_ROOT = "D:\virea_data"
+$env:VIREA_VRM_MODEL_ROOT = "D:\AI-Program-Project\LLM-driven-VRM\vrm_motion\vrm_model"
+$env:VIREA_LLM_DRIVEN_VRM_ROOT = "D:\AI-Program-Project\LLM-driven-VRM"
 
 $env:AMASS_ROOT = "$env:VIREA_DATA_ROOT\raw\amass"
 $env:BABEL_ROOT = "$env:VIREA_DATA_ROOT\raw\babel"
@@ -692,53 +726,49 @@ $env:HUMANML3D_ROOT = "$env:VIREA_DATA_ROOT\raw\humanml3d"
 $env:SUSUINTERACTS_ROOT = "$env:VIREA_DATA_ROOT\raw\susuinteracts"
 ```
 
-## Planned CLI
+## Implemented CLI
 
-The CLI is designed around data lifecycle stages. These commands describe the
-planned interface and may not be available until the corresponding modules are
-implemented.
+The current CLI supports source selection, raw/processed preview, processing,
+demo fixture creation, and mathematical verification.
 
-```bash
-# 1. Catalog raw files
-virea catalog \
-  --config configs/pipelines/catalog.yaml \
-  --out $VIREA_DATA_ROOT/registry/raw_file_index.parquet
+```powershell
+$env:PYTHONPATH = "D:\AI-Program-Project\virea\src"
+$py = "C:\Users\explo\.conda\envs\llm-driven-vrm\python.exe"
 
-# 2. Build dataset manifests
-virea manifest build \
-  --datasets beat humanml3d amass babel \
-  --out $VIREA_DATA_ROOT/canonical/v0.1.0/manifests
-
-# 3. Validate metadata and licenses
-virea validate \
-  --manifest $VIREA_DATA_ROOT/canonical/v0.1.0/manifests/train.jsonl
-
-# 4. Package processed data
-virea package \
-  --release configs/releases/v0.1.0-data.yaml
-
-# 5. Preview samples
-virea preview \
-  --motion-uid virea:beat:speaker01_seq0008:000000:000360:a13f9c2e \
-  --avatar examples/tiny_avatar/default.vrm
+& $py -m virea.cli sources
+& $py -m virea.cli build-demo --overwrite
+& $py -m virea.cli interactive
+& $py -m virea.cli samples --data-source demo --dataset beat --limit 1
+& $py -m virea.cli process --data-source demo --dataset beat --limit 1 --max-frames 120
+& $py -m virea.cli vrm-audit --out demo/vrm-control-rest-audit.json
+& $py -m virea.cli verify --data-source demo --max-frames 16 --out demo/verification-report.json
+& $py scripts/smoke_pipeline.py --data-source full --max-frames 8
 ```
+
+`--data-source full` uses the complete local raw dataset directory. `--data-source demo`
+uses `demo/raw`, which mirrors the full layout but is small enough for quick
+end-to-end tests. The same `data_source` parameter is also available in the
+FastAPI endpoints and the web viewer.
+
+`virea.cli vrm-audit` inspects real `.vrm` files, derives the VRM control-rest
+template used by processed FK, and records the static rest alignment checks that
+guard against driving an imported avatar with the wrong skeleton space.
 
 ## Viewer
 
-The web viewer is intended to inspect VRM motion quality.
+The web viewer now provides a unified 2D comparison view plus a 3D import panel.
 
-Planned features:
+Implemented features:
 
-- Load a `.vrm` avatar.
-- Load a processed VIREA motion sample.
-- Load `.vrma` preview animation.
-- Display text, emotion, source, and license metadata.
-- Show skeleton overlay.
-- Show root trajectory.
-- Show foot contact indicators.
-- Compare multiple avatar bodies.
-- Export preview screenshots and videos.
-- Mark samples as passed, suspicious, or failed.
+- Load raw and processed previews side by side.
+- Root-align the 2D preview and render motion trails.
+- Hide or show hand detail in the 2D skeleton.
+- Import a local `.vrm`, `.glb`, or `.gltf` model.
+- Align the imported VRM authored rest skeleton to processed `motion.rest_offsets`.
+- Drive imported VRM humanoids with processed root motion and normalized bone poses.
+- Rotate before/after previews and the imported model with interactive orbit controls.
+- Inspect source, processed, quality, and metadata payloads.
+- Switch data sources between `full` and `demo`.
 
 Planned location:
 

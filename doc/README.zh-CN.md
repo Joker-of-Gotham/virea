@@ -592,6 +592,8 @@ pip install -e ".[dev]"
 
 ```bash
 export VIREA_DATA_ROOT=/path/to/virea_data
+export VIREA_VRM_MODEL_ROOT=/path/to/vrm_model
+export VIREA_LLM_DRIVEN_VRM_ROOT=/path/to/LLM-driven-VRM
 
 export AMASS_ROOT=$VIREA_DATA_ROOT/raw/amass
 export BABEL_ROOT=$VIREA_DATA_ROOT/raw/babel
@@ -604,6 +606,8 @@ export SUSUINTERACTS_ROOT=$VIREA_DATA_ROOT/raw/susuinteracts
 
 ```powershell
 $env:VIREA_DATA_ROOT = "D:\virea_data"
+$env:VIREA_VRM_MODEL_ROOT = "D:\AI-Program-Project\LLM-driven-VRM\vrm_motion\vrm_model"
+$env:VIREA_LLM_DRIVEN_VRM_ROOT = "D:\AI-Program-Project\LLM-driven-VRM"
 
 $env:AMASS_ROOT = "$env:VIREA_DATA_ROOT\raw\amass"
 $env:BABEL_ROOT = "$env:VIREA_DATA_ROOT\raw\babel"
@@ -614,53 +618,48 @@ $env:HUMANML3D_ROOT = "$env:VIREA_DATA_ROOT\raw\humanml3d"
 $env:SUSUINTERACTS_ROOT = "$env:VIREA_DATA_ROOT\raw\susuinteracts"
 ```
 
-## 规划中的 CLI
+## 当前 CLI
 
-CLI 会围绕数据生命周期阶段设计。以下命令描述计划接口，实际可用性取决于对应模块是否已经实现。
+当前仓库已经提供可运行的数据源选择、demo 构建、样本读取、处理、验证和前端服务命令。更详细的实现说明见 `doc/data-pipeline.zh-CN.md`。
 
-```bash
-# 1. Catalog raw files
-virea catalog \
-  --config configs/pipelines/catalog.yaml \
-  --out $VIREA_DATA_ROOT/registry/raw_file_index.parquet
+```powershell
+$env:PYTHONPATH = "D:\AI-Program-Project\virea\src"
+$py = "C:\Users\explo\.conda\envs\llm-driven-vrm\python.exe"
 
-# 2. Build dataset manifests
-virea manifest build \
-  --datasets beat humanml3d amass babel \
-  --out $VIREA_DATA_ROOT/canonical/v0.1.0/manifests
-
-# 3. Validate metadata and licenses
-virea validate \
-  --manifest $VIREA_DATA_ROOT/canonical/v0.1.0/manifests/train.jsonl
-
-# 4. Package processed data
-virea package \
-  --release configs/releases/v0.1.0-data.yaml
-
-# 5. Preview samples
-virea preview \
-  --motion-uid virea:beat:speaker01_seq0008:000000:000360:a13f9c2e \
-  --avatar examples/tiny_avatar/default.vrm
+& $py -m virea.cli sources
+& $py -m virea.cli build-demo --overwrite
+& $py -m virea.cli convert --data-source demo --continue-on-error --report demo/conversion-report.json
+& $py -m virea.cli convert --data-source full --input-root "D:\AI-Program-Project\LLM-driven-VRM\vrm_motion\runtime\datasets\raw" --output-root "D:\AI-Program-Project\virea\data\virea_processed\full" --continue-on-error --report data/virea_processed/full/conversion-report.json
+& $py -m virea.cli interactive
+& $py -m virea.cli samples --data-source demo --dataset beat --limit 1
+& $py -m virea.cli process --data-source demo --dataset beat --limit 1 --max-frames 120
+& $py -m virea.cli vrm-audit --out demo/vrm-control-rest-audit.json
+& $py -m virea.cli verify --data-source demo --max-frames 16 --out demo/verification-report.json
+& $py scripts/smoke_pipeline.py --data-source full --max-frames 8
 ```
+
+`full` 数据源指向完整本地 raw 目录；`demo` 数据源指向 `demo/raw`，用于快速验证从读取、展示、转换到 VRM-centered 训练 payload 的完整流程。
+
+`vrm-audit` 会读取真实 `.vrm` 模型并生成 VRM control-rest template 对齐报告。`verify` 会把该报告纳入总体检查，避免 processed FK 和导入 VRM 模型处于不同骨架空间。
 
 ## Viewer
 
-Web viewer 用于检查 VRM 动作质量。
+Web viewer 用于检查 raw source、processed VRM motion 和真实 avatar 驱动质量。
 
-计划功能：
+当前已实现：
 
-- 加载 `.vrm` 角色。
-- 加载处理后的 VIREA 动作样本。
-- 加载 `.vrma` 预览动画。
-- 显示文本、情绪、来源和许可证元数据。
-- 显示骨架 overlay。
-- 显示根节点轨迹。
-- 显示足部接触指标。
-- 比较多个 avatar 身体。
-- 导出预览截图和视频。
-- 将样本标记为 passed、suspicious 或 failed。
+- 同一页面展示 before source preview 与 after VRM/canonical preview。
+- before / after canvas 支持拖拽 360 度旋转、滚轮缩放和双击重置。
+- after 使用真实 VRM control-rest template 上的 52 关节 VRM FK，不再复制 before 的 22 关节 source skeleton。
+- 加载本地 `.vrm`、`.glb` 或 `.gltf` 模型。
+- 对 `.vrm` 先把真实 authored rest skeleton 对齐到 processed `motion.rest_offsets`，再使用 `three.js` / `@pixiv/three-vrm` 的 humanoid pose 驱动，让模型跟随 processed motion payload 运动。
+- VRM import 区域只显示真实导入模型，不再叠加 processed skeleton overlay。
+- 主时间轴和 VRM 面板内 `VRM Frame` / `Play` 控件同步驱动 before、after 与 VRM avatar。
+- 显示 root trajectory、质量报告和转换 metadata。
+- 支持明/暗色主题切换。
+- 支持 `full` 与 `demo` 两套数据源切换。
 
-计划位置：
+位置：
 
 ```text
 apps/viewer-web/

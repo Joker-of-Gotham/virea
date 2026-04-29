@@ -12,6 +12,8 @@ pytest-cache-files-*/
 /demo/processed/
 /demo/manifest.json
 /demo/verification-report.json
+/demo/conversion-smoke.json
+/demo/vrm-control-rest-audit.json
 /runtime/
 /outputs/
 *.npz
