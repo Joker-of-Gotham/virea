@@ -1,0 +1,27 @@
+/.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+pytest-cache-files-*/
+.mypy_cache/
+.ruff_cache/
+
+# Large or generated data must stay outside Git.
+/data/
+/demo/raw/
+/demo/processed/
+/demo/manifest.json
+/demo/verification-report.json
+/runtime/
+/outputs/
+*.npz
+*.npy
+*.parquet
+*.vrma
+*.mp4
+
+# Local server logs and caches.
+/logs/
+/cache/
+/tmp/
+*.log
