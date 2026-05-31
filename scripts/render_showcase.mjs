@@ -9,6 +9,14 @@ function argValue(name, fallback = "") {
   return index >= 0 && index + 1 < process.argv.length ? process.argv[index + 1] : fallback;
 }
 
+function requiredValue(name, envName) {
+  const value = argValue(name, process.env[envName] || "");
+  if (!value) {
+    throw new Error(`Missing ${name}. Pass ${name} or set ${envName}.`);
+  }
+  return value;
+}
+
 async function loadPlaywright() {
   const moduleSpec = process.env.PLAYWRIGHT_MODULE || "playwright";
   if (/^[a-zA-Z]:[\\/]/.test(moduleSpec) || moduleSpec.startsWith("/")) {
@@ -101,11 +109,11 @@ async function zoomModelCanvas(page) {
 }
 
 async function main() {
-  const server = argValue("--server", "http://127.0.0.1:8014");
+  const server = requiredValue("--server", "VIREA_SHOWCASE_SERVER");
   const dataSource = argValue("--data-source", "demo");
   const manifestPath = path.resolve(repoRoot, argValue("--manifest", "doc/showcase/showcase-samples.json"));
   const outDir = path.resolve(repoRoot, argValue("--out-dir", "doc/showcase/videos"));
-  const vrmPath = path.resolve(argValue("--vrm", "C:/Users/explo/Downloads/VRM-Model-1.vrm"));
+  const vrmPath = path.resolve(requiredValue("--vrm", "VIREA_SHOWCASE_VRM"));
   const maxFrames = Number(argValue("--max-frames", "180"));
   const seconds = Number(argValue("--seconds", "3.5"));
   const bitrate = Number(argValue("--bitrate", "1200000"));

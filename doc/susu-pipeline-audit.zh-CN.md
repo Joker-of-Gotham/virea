@@ -32,10 +32,7 @@
 ## 验证命令
 
 ```powershell
-$env:PYTHONPATH = "D:\AI-Program-Project\virea\src"
 python -m pytest -q
 python scripts\smoke_pipeline.py --data-source demo --max-frames 8
 python scripts\smoke_pipeline.py --data-source full --max-frames 8
-python -m virea.cli verify --data-source demo --max-frames 32 --out demo\verification-report.json
-python -m virea.cli verify --data-source full --max-frames 16 --out data\virea_processed\full\verification-report.json
 ```

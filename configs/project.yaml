@@ -8,8 +8,6 @@ paths:
   processed_root_env: VIREA_PROCESSED_ROOT
   data_source_env: VIREA_DATA_SOURCE
   vrm_model_root_env: VIREA_VRM_MODEL_ROOT
-  # VRM model fallback (machine-specific, override with VIREA_VRM_MODEL_ROOT)
-  default_vrm_model_root: D:/AI-Program-Project/LLM-driven-VRM/vrm_motion/vrm_model
   # Processed data defaults to this repository's ignored data/ directory.
   default_processed_root: data/virea_processed
   processed_subdir: virea_processed
@@ -18,16 +16,16 @@ data_sources:
   # ─── full ───────────────────────────────────────────────────────────────────
   # The COMPLETE external dataset. Lives OUTSIDE this repository on a dedicated
   # data drive. Path varies by machine — configure via environment variable:
-  #   $env:VIREA_RAW_ROOT = "E:/your/data/raw"        (PowerShell)
+  #   $env:VIREA_RAW_ROOT = "<path-to-full-raw-datasets>"  (PowerShell)
   #   export VIREA_RAW_ROOT="/mnt/data/raw"            (Linux/Mac)
-  # If VIREA_RAW_ROOT is not set, the system auto-detects from known locations.
+  # If VIREA_RAW_ROOT is not set, the system checks the portable data/raw folder.
   full:
     label: Full external raw datasets (machine-specific path)
     processed_root: data/virea_processed/full
     description: >
       Complete raw dataset collection stored on an external/dedicated data drive.
       NOT inside this repository. Set VIREA_RAW_ROOT env var to specify the path,
-      or the system will auto-detect from known fallback locations.
+      or place data under the repository-local ignored data/raw folder.
 
   # ─── demo ───────────────────────────────────────────────────────────────────
   # A small local fixture (subset of full) inside this repository for quick

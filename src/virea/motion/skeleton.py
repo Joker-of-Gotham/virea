@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from functools import lru_cache
 import os
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -213,9 +212,11 @@ def forward_kinematics(
 def _default_vrm_model_root() -> Path:
     env_name = "VIREA_VRM_MODEL_ROOT"
     configured_default: Path | None = None
+    project_root = Path(__file__).resolve().parents[3]
     try:
         from virea.paths import load_project_config, repo_root
 
+        project_root = repo_root()
         cfg = load_project_config()
         path_cfg = cfg.get("paths", {})
         env_name = str(path_cfg.get("vrm_model_root_env", env_name))
@@ -223,7 +224,7 @@ def _default_vrm_model_root() -> Path:
         if configured_value:
             configured_default = Path(str(configured_value)).expanduser()
             if not configured_default.is_absolute():
-                configured_default = repo_root() / configured_default
+                configured_default = project_root / configured_default
     except Exception:
         configured_default = None
 
@@ -232,23 +233,20 @@ def _default_vrm_model_root() -> Path:
         return Path(env).expanduser()
     if configured_default is not None:
         return configured_default
-    sibling = Path(__file__).resolve().parents[4] / "LLM-driven-VRM" / "vrm_motion" / "vrm_model"
-    if sibling.exists():
-        return sibling
-    return Path(r"D:\AI-Program-Project\LLM-driven-VRM\vrm_motion\vrm_model")
+    return project_root / "assets" / "vrm"
 
 
 def _ensure_vrm_motion_import_path() -> None:
-    candidates = [
-        Path(os.getenv("VIREA_LLM_DRIVEN_VRM_ROOT", "")).expanduser() if os.getenv("VIREA_LLM_DRIVEN_VRM_ROOT") else None,
-        Path(__file__).resolve().parents[4] / "LLM-driven-VRM",
-        Path(r"D:\AI-Program-Project\LLM-driven-VRM"),
-    ]
-    for candidate in candidates:
-        if candidate and candidate.exists():
-            text = str(candidate)
-            if text not in sys.path:
-                sys.path.insert(0, text)
+    extra_path = os.getenv("VIREA_VRM_MOTION_PYTHONPATH")
+    if not extra_path:
+        return
+    import sys
+
+    candidate = Path(extra_path).expanduser()
+    if candidate.exists():
+        text = str(candidate)
+        if text not in sys.path:
+            sys.path.insert(0, text)
 
 
 @lru_cache(maxsize=1)

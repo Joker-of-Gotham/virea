@@ -8,10 +8,10 @@
 - `videos/*.webm`: 用真实 VRM avatar 录制的 VP8 WebM 结果视频
 - `gifs/*.gif`: README 直接展示用的动画预览，点击后打开对应 WebM
 
-视频使用的本地模型：
+生成视频时使用的本地模型由环境变量或命令行参数提供：
 
 ```text
-C:\Users\explo\Downloads\VRM-Model-1.vrm
+VIREA_SHOWCASE_VRM=<path-to-avatar.vrm>
 ```
 
 模型文件不入库，只提交渲染后的视频。
@@ -42,12 +42,13 @@ python scripts/select_showcase_samples.py `
 载入 processed motion payload，从 `modelCanvas` 录制视频。
 
 ```powershell
+$env:VIREA_SHOWCASE_SERVER = "<viewer-server-url>"
+$env:VIREA_SHOWCASE_VRM = "<path-to-avatar.vrm>"
+
 node scripts/render_showcase.mjs `
-  --server http://127.0.0.1:8014 `
   --data-source demo `
   --manifest doc\showcase\showcase-samples.json `
-  --out-dir doc\showcase\videos `
-  --vrm "C:\Users\explo\Downloads\VRM-Model-1.vrm"
+  --out-dir doc\showcase\videos
 ```
 
 默认输出 VP8 WebM，便于浏览器播放和轻量提交。GitHub 仓库 README 对内嵌

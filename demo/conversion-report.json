@@ -1,8 +1,8 @@
 {
   "schema_version": "virea.conversion_report.v0.1.0",
   "data_source": "demo",
-  "raw_root": "D:\\AI-Program-Project\\virea\\demo\\raw",
-  "processed_root": "D:\\AI-Program-Project\\virea\\demo\\processed",
+  "raw_root": "demo/raw",
+  "processed_root": "demo/processed",
   "max_frames": null,
   "workers": 4,
   "processed": 0,
@@ -24,7 +24,7 @@
           "status": "skipped",
           "frame_count": 524,
           "files": {
-            "source_snapshot": "D:\\AI-Program-Project\\virea\\demo\\processed\\source\\v0.1.0\\snapshot\\amass\\virea_amass_ACCAD_Female1General_c3d_A10___lie_to_crouch_stageii_000000_000524_948607b5.npz"
+            "source_snapshot": "demo/processed/source/v0.1.0/snapshot/amass/virea_amass_ACCAD_Female1General_c3d_A10___lie_to_crouch_stageii_000000_000524_948607b5.npz"
           },
           "elapsed_sec": 0
         }
@@ -43,7 +43,7 @@
           "status": "skipped",
           "frame_count": 524,
           "files": {
-            "source_snapshot": "D:\\AI-Program-Project\\virea\\demo\\processed\\source\\v0.1.0\\snapshot\\babel\\virea_babel_ACCAD_Female1General_c3d_A10___lie_to_crouch_stageii_000000_000524_7bb03a30.npz"
+            "source_snapshot": "demo/processed/source/v0.1.0/snapshot/babel/virea_babel_ACCAD_Female1General_c3d_A10___lie_to_crouch_stageii_000000_000524_7bb03a30.npz"
           },
           "elapsed_sec": 0
         }
@@ -62,7 +62,7 @@
           "status": "skipped",
           "frame_count": 6840,
           "files": {
-            "source_snapshot": "D:\\AI-Program-Project\\virea\\demo\\processed\\source\\v0.1.0\\snapshot\\beat\\virea_beat_pose_1_1_wayne_0_100_100_000000_006840_a2492470.npz"
+            "source_snapshot": "demo/processed/source/v0.1.0/snapshot/beat/virea_beat_pose_1_1_wayne_0_100_100_000000_006840_a2492470.npz"
           },
           "elapsed_sec": 0
         }
@@ -81,7 +81,7 @@
           "status": "skipped",
           "frame_count": 1113,
           "files": {
-            "source_snapshot": "D:\\AI-Program-Project\\virea\\demo\\processed\\source\\v0.1.0\\snapshot\\grab\\virea_grab_s1_airplane_fly_1_000000_001113_99d6900e.npz"
+            "source_snapshot": "demo/processed/source/v0.1.0/snapshot/grab/virea_grab_s1_airplane_fly_1_000000_001113_99d6900e.npz"
           },
           "elapsed_sec": 0
         }
@@ -100,7 +100,7 @@
           "status": "skipped",
           "frame_count": 199,
           "files": {
-            "source_snapshot": "D:\\AI-Program-Project\\virea\\demo\\processed\\source\\v0.1.0\\snapshot\\humanml3d\\virea_humanml3d_test_test_00000_of_00002_0_000000_000199_0c9b92aa.npz"
+            "source_snapshot": "demo/processed/source/v0.1.0/snapshot/humanml3d/virea_humanml3d_test_test_00000_of_00002_0_000000_000199_0c9b92aa.npz"
           },
           "elapsed_sec": 0
         },
@@ -110,7 +110,7 @@
           "status": "skipped",
           "frame_count": 62,
           "files": {
-            "source_snapshot": "D:\\AI-Program-Project\\virea\\demo\\processed\\source\\v0.1.0\\snapshot\\humanml3d\\virea_humanml3d_test_test_00000_of_00002_1_000000_000062_7a3e7f88.npz"
+            "source_snapshot": "demo/processed/source/v0.1.0/snapshot/humanml3d/virea_humanml3d_test_test_00000_of_00002_1_000000_000062_7a3e7f88.npz"
           },
           "elapsed_sec": 0
         },
@@ -120,7 +120,7 @@
           "status": "skipped",
           "frame_count": 64,
           "files": {
-            "source_snapshot": "D:\\AI-Program-Project\\virea\\demo\\processed\\source\\v0.1.0\\snapshot\\humanml3d\\virea_humanml3d_test_test_00000_of_00002_2_000000_000064_c40fea0d.npz"
+            "source_snapshot": "demo/processed/source/v0.1.0/snapshot/humanml3d/virea_humanml3d_test_test_00000_of_00002_2_000000_000064_c40fea0d.npz"
           },
           "elapsed_sec": 0
         },
@@ -130,7 +130,7 @@
           "status": "skipped",
           "frame_count": 133,
           "files": {
-            "source_snapshot": "D:\\AI-Program-Project\\virea\\demo\\processed\\source\\v0.1.0\\snapshot\\humanml3d\\virea_humanml3d_test_test_00000_of_00002_3_000000_000133_5e54e4a5.npz"
+            "source_snapshot": "demo/processed/source/v0.1.0/snapshot/humanml3d/virea_humanml3d_test_test_00000_of_00002_3_000000_000133_5e54e4a5.npz"
           },
           "elapsed_sec": 0
         }
@@ -149,7 +149,7 @@
           "status": "skipped",
           "frame_count": 300,
           "files": {
-            "source_snapshot": "D:\\AI-Program-Project\\virea\\demo\\processed\\source\\v0.1.0\\snapshot\\motionx\\virea_motionx_motion_data_smplx_322_aist_subset_0000_Dance_Break_000000_000300_c7dc0ebb.npz"
+            "source_snapshot": "demo/processed/source/v0.1.0/snapshot/motionx/virea_motionx_motion_data_smplx_322_aist_subset_0000_Dance_Break_000000_000300_c7dc0ebb.npz"
           },
           "elapsed_sec": 0
         }
@@ -168,7 +168,7 @@
           "status": "skipped",
           "frame_count": 148,
           "files": {
-            "source_snapshot": "D:\\AI-Program-Project\\virea\\demo\\processed\\source\\v0.1.0\\snapshot\\susuinteracts\\virea_susuinteracts_fbx_to_json_data_susu_retarget_maya_20250905_Human_0904_152_8_01_000000_000148_645ec52f.npz"
+            "source_snapshot": "demo/processed/source/v0.1.0/snapshot/susuinteracts/virea_susuinteracts_fbx_to_json_data_susu_retarget_maya_20250905_Human_0904_152_8_01_000000_000148_645ec52f.npz"
           },
           "elapsed_sec": 0
         }

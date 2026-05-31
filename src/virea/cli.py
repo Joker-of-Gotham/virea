@@ -353,14 +353,25 @@ def _cmd_process(args: argparse.Namespace) -> None:
 
 def _cmd_serve(args: argparse.Namespace) -> None:
     source = args.data_source or "demo"
+    host = args.host or os.getenv("VIREA_SERVE_HOST") or None
+    env_port = os.getenv("VIREA_SERVE_PORT")
+    port = args.port or (int(env_port) if env_port else None)
     paths = ProjectPaths(data_source=source)
     print(f"\n  Data source: {source}")
     print(f"  Raw root:    {paths.raw_root} {'(OK)' if paths.raw_root.exists() else '(NOT FOUND)'}")
     print(f"  Processed:   {paths.processed_root}")
-    print(f"  Server:      http://{args.host}:{args.port}")
+    if host and port:
+        print(f"  Server:      http://{host}:{port}")
+    else:
+        print("  Server:      uvicorn default bind")
     print()
     os.environ["VIREA_DATA_SOURCE"] = source
-    uvicorn.run("virea.server.app:app", host=args.host, port=args.port, reload=args.reload)
+    run_kwargs: dict[str, Any] = {"reload": args.reload}
+    if host:
+        run_kwargs["host"] = host
+    if port:
+        run_kwargs["port"] = port
+    uvicorn.run("virea.server.app:app", **run_kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -415,8 +426,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--data-source", choices=AVAILABLE_DATA_SOURCES, default="demo",
         help="Data source for the viewer (default: demo).",
     )
-    srv.add_argument("--host", default="127.0.0.1")
-    srv.add_argument("--port", type=int, default=8013)
+    srv.add_argument("--host", default="", help="Bind host. Can also be set with VIREA_SERVE_HOST.")
+    srv.add_argument("--port", type=int, default=None, help="Bind port. Can also be set with VIREA_SERVE_PORT.")
     srv.add_argument("--reload", action="store_true")
     srv.set_defaults(func=_cmd_serve)
 

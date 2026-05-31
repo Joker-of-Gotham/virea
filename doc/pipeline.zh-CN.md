@@ -18,7 +18,15 @@ pip install -e ".[dev]"
 如果使用本机完整数据源：
 
 ```powershell
-$env:VIREA_RAW_ROOT = "D:\AI-Program-Project\LLM-driven-VRM\vrm_motion\runtime\datasets\raw"
+$env:VIREA_RAW_ROOT = "<path-to-full-raw-datasets>"
+```
+
+如果仓库内没有 `vendor/three` 和 `vendor/three-vrm`，viewer 的 JS 依赖也通过
+环境变量提供：
+
+```powershell
+$env:VIREA_THREE_ROOT = "<path-to-node_modules-three>"
+$env:VIREA_THREE_VRM_ROOT = "<path-to-node_modules-three-vrm>"
 ```
 
 ## 2. 构建 demo fixture
@@ -64,14 +72,10 @@ python -m virea.cli process `
 ## 4. 启动 viewer
 
 ```powershell
-python -m virea.cli serve --data-source demo --host 127.0.0.1 --port 8014
+python -m virea.cli serve --data-source demo
 ```
 
-打开：
-
-```text
-http://127.0.0.1:8014/
-```
+打开 CLI 输出的 server URL。
 
 操作顺序：
 
@@ -79,7 +83,7 @@ http://127.0.0.1:8014/
 2. 选择数据集和样本
 3. 查看 before/source preview
 4. 查看 after/VRM preview
-5. 导入本地 `.vrm`，例如 `C:\Users\explo\Downloads\VRM-Model-1.vrm`
+5. 导入本地 `.vrm`，或设置 `VIREA_SHOWCASE_VRM`
 6. 点击 Play，以 clip 的真实 fps 播放
 
 ## 5. 生成结果看板
@@ -96,14 +100,14 @@ python scripts/select_showcase_samples.py `
 再用浏览器录制真实 VRM avatar：
 
 ```powershell
-$env:PLAYWRIGHT_MODULE = "D:\path\to\playwright\index.mjs"
+$env:PLAYWRIGHT_MODULE = "<path-to-playwright-index.mjs>"
+$env:VIREA_SHOWCASE_SERVER = "<viewer-server-url>"
+$env:VIREA_SHOWCASE_VRM = "<path-to-avatar.vrm>"
 
 node scripts/render_showcase.mjs `
-  --server http://127.0.0.1:8014 `
   --data-source demo `
   --manifest doc\showcase\showcase-samples.json `
-  --out-dir doc\showcase\videos `
-  --vrm "C:\Users\explo\Downloads\VRM-Model-1.vrm"
+  --out-dir doc\showcase\videos
 ```
 
 当前仓库中的 49 个 WebM 结果视频就是用上述流程生成。

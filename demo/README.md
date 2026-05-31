@@ -12,7 +12,7 @@ Build or refresh it with:
 ```powershell
 python -m virea.cli build-demo --samples-per-dataset 7 --overwrite
 python -m virea.cli process --data-source demo --workers 8 --force
-python -m virea.cli serve --data-source demo --port 8014
+python -m virea.cli serve --data-source demo
 ```
 
 Important: `demo/raw` and `demo/processed` can still contain third-party

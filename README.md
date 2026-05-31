@@ -19,8 +19,8 @@ previewed on a real VRM avatar.
 ## Result Board
 
 The following 7 x 7 board was rendered from `demo` processed clips with the real
-VRM model at `C:\Users\explo\Downloads\VRM-Model-1.vrm`. The VRM file itself is
-not committed. GitHub-renderable animated GIF previews are committed under
+VRM model supplied through `VIREA_SHOWCASE_VRM`. The VRM file itself is not
+committed. GitHub-renderable animated GIF previews are committed under
 `doc/showcase/gifs/`, and each preview links to the original WebM under
 `doc/showcase/videos/`.
 
@@ -81,7 +81,11 @@ python -m venv .venv
 pip install -e ".[dev]"
 
 # Optional: point full mode at your local raw dataset root.
-$env:VIREA_RAW_ROOT = "D:\AI-Program-Project\LLM-driven-VRM\vrm_motion\runtime\datasets\raw"
+$env:VIREA_RAW_ROOT = "<path-to-full-raw-datasets>"
+
+# Optional: point the web viewer at local JS runtime packages if vendor/ is absent.
+$env:VIREA_THREE_ROOT = "<path-to-node_modules-three>"
+$env:VIREA_THREE_VRM_ROOT = "<path-to-node_modules-three-vrm>"
 
 # Build a small same-layout demo fixture from the local full source.
 python -m virea.cli build-demo --samples-per-dataset 7 --overwrite
@@ -90,11 +94,11 @@ python -m virea.cli build-demo --samples-per-dataset 7 --overwrite
 python -m virea.cli process --data-source demo --workers 8 --force
 
 # Open the web viewer.
-python -m virea.cli serve --data-source demo --host 127.0.0.1 --port 8014
+python -m virea.cli serve --data-source demo
 ```
 
-Open `http://127.0.0.1:8014/`, load a `.vrm`, choose a sample, then compare
-source, processed, and real avatar playback.
+Open the server URL printed by the CLI, load a `.vrm`, choose a sample, then
+compare source, processed, and real avatar playback.
 
 ## Pipeline
 
@@ -116,6 +120,20 @@ Key conventions:
 - retargeting records provenance, coordinate basis, scale, and quality metrics
 - large third-party raw datasets stay outside Git; lightweight showcase videos
   and metadata can be committed
+
+## Configuration
+
+Machine-specific paths must be supplied through environment variables, never
+committed into source or docs:
+
+- `VIREA_RAW_ROOT`: full raw dataset root
+- `VIREA_PROCESSED_ROOT`: optional processed artifact root
+- `VIREA_VRM_MODEL_ROOT`: optional VRM rest-template inspection root
+- `VIREA_VRM_MOTION_PYTHONPATH`: optional external `vrm_motion` Python package path
+- `VIREA_TMR_SRC`: optional HumanML3D/TMR decoder source path
+- `VIREA_THREE_ROOT` and `VIREA_THREE_VRM_ROOT`: optional viewer runtime packages
+- `VIREA_SHOWCASE_SERVER` and `VIREA_SHOWCASE_VRM`: showcase renderer inputs
+- `VIREA_SERVE_HOST` and `VIREA_SERVE_PORT`: optional server bind settings
 
 ## Documentation
 

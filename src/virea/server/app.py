@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from functools import lru_cache
+import os
+from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Query
@@ -49,10 +51,16 @@ def _resolve_data_source(data_source: str | None) -> str:
     return (data_source or _default_data_source()).strip().lower()
 
 
-def _mount_static_if_exists(app: FastAPI, route: str, directory: str) -> None:
-    path = repo_root().parent / directory
+def _mount_static_if_exists(app: FastAPI, route: str, directory: str | Path) -> None:
+    path = Path(directory).expanduser()
+    if not path.is_absolute():
+        path = repo_root() / path
     if path.exists():
         app.mount(route, StaticFiles(directory=str(path)), name=route.strip("/").replace("/", "_"))
+
+
+def _mount_static_from_env(app: FastAPI, route: str, env_name: str, project_relative_fallback: str) -> None:
+    _mount_static_if_exists(app, route, os.getenv(env_name) or project_relative_fallback)
 
 
 @lru_cache(maxsize=4)
@@ -86,16 +94,8 @@ def create_app() -> FastAPI:
     ui_root = repo_root() / "apps" / "viewer-web"
     if ui_root.exists():
         app.mount("/ui", StaticFiles(directory=str(ui_root)), name="ui")
-    _mount_static_if_exists(
-        app,
-        "/vendor/three",
-        "LLM-driven-VRM/history_try/VRM-executor/node_modules/.pnpm/three@0.183.2/node_modules/three",
-    )
-    _mount_static_if_exists(
-        app,
-        "/vendor/three-vrm",
-        "LLM-driven-VRM/history_try/VRM-executor/node_modules/.pnpm/@pixiv+three-vrm@3.5.1_three@0.183.2/node_modules/@pixiv/three-vrm",
-    )
+    _mount_static_from_env(app, "/vendor/three", "VIREA_THREE_ROOT", "vendor/three")
+    _mount_static_from_env(app, "/vendor/three-vrm", "VIREA_THREE_VRM_ROOT", "vendor/three-vrm")
 
     @app.get("/")
     def root() -> FileResponse:

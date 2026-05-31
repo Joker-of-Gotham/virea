@@ -420,9 +420,6 @@ class HumanML3D263Codec(PositionSequenceCodec):
     def _decode_positions(self, motion: np.ndarray) -> tuple[np.ndarray, list[str], dict[str, Any]]:
         try:
             tmr_src = os.getenv("VIREA_TMR_SRC")
-            if not tmr_src:
-                guess = Path(__file__).resolve().parents[4] / "LLM-driven-VRM" / "tmp_repos" / "TMR" / "src"
-                tmr_src = str(guess)
             if tmr_src and tmr_src not in sys.path and Path(tmr_src).exists():
                 sys.path.insert(0, tmr_src)
             import torch

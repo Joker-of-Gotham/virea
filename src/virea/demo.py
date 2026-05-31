@@ -18,6 +18,31 @@ def _copy_file(src: Path, dst: Path, copied: list[dict]) -> None:
     copied.append({"source": str(src), "target": str(dst), "bytes": dst.stat().st_size})
 
 
+def _portable_manifest_path(path: str | Path, full_raw_root: Path, demo_raw_root: Path) -> str:
+    value = Path(path)
+    for prefix, root in (("full_raw", full_raw_root), ("demo/raw", demo_raw_root)):
+        try:
+            return f"{prefix}/{value.relative_to(root).as_posix()}"
+        except ValueError:
+            continue
+    try:
+        return value.relative_to(repo_root()).as_posix()
+    except ValueError:
+        return value.name
+
+
+def _portable_copy_manifest(copied: list[dict], full_raw_root: Path, demo_raw_root: Path) -> list[dict]:
+    result: list[dict] = []
+    for item in copied:
+        portable = dict(item)
+        if portable.get("source") != "generated" and portable.get("source"):
+            portable["source"] = _portable_manifest_path(str(portable["source"]), full_raw_root, demo_raw_root)
+        if portable.get("target"):
+            portable["target"] = _portable_manifest_path(str(portable["target"]), full_raw_root, demo_raw_root)
+        result.append(portable)
+    return result
+
+
 def _copy_related_sample(sample, full_raw_root: Path, demo_raw_root: Path, copied: list[dict]) -> None:
     _copy_file(sample.source_path, demo_raw_root / sample.source_path.relative_to(full_raw_root), copied)
     for related in sample.related_paths.values():
@@ -117,10 +142,10 @@ def build_demo_dataset(max_rows: int = 100, overwrite: bool = False, samples_per
     manifest = {
         "schema_version": "virea.demo_manifest.v0.1.0",
         "description": "Local same-layout demo fixture copied from the configured full raw data source.",
-        "full_raw_root": str(full_raw_root),
-        "demo_raw_root": str(demo_raw_root),
+        "full_raw_root": "<VIREA_RAW_ROOT>",
+        "demo_raw_root": "demo/raw",
         "selected_samples": selected,
-        "copied_files": copied,
+        "copied_files": _portable_copy_manifest(copied, full_raw_root, demo_raw_root),
     }
     manifest_path = repo_root() / "demo" / "manifest.json"
     manifest_path.parent.mkdir(parents=True, exist_ok=True)

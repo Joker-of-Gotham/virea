@@ -10,17 +10,6 @@ DATA_SOURCE_FULL = "full"
 DATA_SOURCE_DEMO = "demo"
 AVAILABLE_DATA_SOURCES = (DATA_SOURCE_FULL, DATA_SOURCE_DEMO)
 
-_FULL_RAW_FALLBACK_LOCATIONS = [
-    # Each entry is a candidate path to search for the full raw dataset root.
-    # The first one that exists AND contains at least one expected subdirectory wins.
-    # Order: environment > sibling project > common data drive locations
-    "{repo_parent}/LLM-driven-VRM/vrm_motion/runtime/datasets/raw",
-    "D:/AI-Program-Project/LLM-driven-VRM/vrm_motion/runtime/datasets/raw",
-    "E:/data/raw",
-    "E:/datasets/raw",
-    "E:/AI-Program-Project/LLM-driven-VRM/vrm_motion/runtime/datasets/raw",
-]
-
 _FULL_RAW_EXPECTED_SUBDIRS = ("SuSuInterActs", "amass", "beat")
 
 
@@ -41,11 +30,16 @@ def _resolve_repo_relative(root: Path, value: str | Path) -> Path:
     return path
 
 
-def _auto_detect_full_raw_root(root: Path) -> Path:
-    """Auto-detect the full raw dataset root by probing known fallback locations."""
-    repo_parent = str(root.parent)
-    for template in _FULL_RAW_FALLBACK_LOCATIONS:
-        candidate = Path(template.format(repo_parent=repo_parent))
+def _auto_detect_full_raw_root(root: Path, data_root_env: str) -> Path:
+    """Resolve a portable full raw root without probing machine-specific paths."""
+    candidates: list[Path] = []
+    configured_data_root = os.getenv(data_root_env)
+    if configured_data_root:
+        data_root = Path(configured_data_root).expanduser()
+        candidates.extend([data_root / "raw", data_root])
+    candidates.append(root / "data" / "raw")
+
+    for candidate in candidates:
         if not candidate.exists():
             continue
         if any((candidate / sub).exists() for sub in _FULL_RAW_EXPECTED_SUBDIRS):
@@ -64,6 +58,7 @@ class ProjectPaths:
             raise ValueError(f"unsupported VIREA data source: {selected_source}")
         self.data_source = selected_source
 
+        data_root_env = str(path_cfg.get("data_root_env", "VIREA_DATA_ROOT"))
         raw_root_env = str(path_cfg.get("raw_root_env", "VIREA_RAW_ROOT"))
         processed_root_env = str(path_cfg.get("processed_root_env", "VIREA_PROCESSED_ROOT"))
 
@@ -75,7 +70,7 @@ class ProjectPaths:
         elif configured_raw_root:
             self.raw_root = _resolve_repo_relative(self.root, configured_raw_root)
         elif selected_source == DATA_SOURCE_FULL:
-            self.raw_root = _auto_detect_full_raw_root(self.root)
+            self.raw_root = _auto_detect_full_raw_root(self.root, data_root_env)
         else:
             self.raw_root = self.root / "demo" / "raw"
 
