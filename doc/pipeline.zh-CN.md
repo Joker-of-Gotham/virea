@@ -51,11 +51,26 @@ export VIREA_THREE_ROOT="<path-to-node_modules-three>"
 export VIREA_THREE_VRM_ROOT="<path-to-node_modules-three-vrm>"
 ```
 
-## 2. 构建 demo fixture
+## 2. 获取 demo 数据
 
-`demo` 使用和 `full` 相同的目录结构，但只复制少量样本，方便端到端调试。
+Demo 数据托管在 HuggingFace：https://huggingface.co/datasets/ChikaKomari/virea-demo
 
-```powershell
+```bash
+# 下载全部 demo 数据（raw + processed，约 4 GB）
+python scripts/download_demo.py
+
+# 仅下载 raw（可本地重新处理）
+python scripts/download_demo.py --raw-only
+
+# 仅下载 processed（跳过处理步骤直接查看）
+python scripts/download_demo.py --processed-only
+```
+
+下载后文件会自动放入 `demo/raw/` 和 `demo/processed/` 目录。
+
+如需从本机 full 数据源手动构建新的 demo：
+
+```bash
 python -m virea.cli build-demo --samples-per-dataset 7 --overwrite
 ```
 

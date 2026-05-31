@@ -1,4 +1,4 @@
-# VIREA
+﻿# VIREA
 
 VIREA is a VRM-native motion data infrastructure project. Its core idea is simple:
 
@@ -70,6 +70,8 @@ the renderer is [`scripts/render_showcase.mjs`](scripts/render_showcase.mjs).
 
 ## Quick Start
 
+### 1. Clone and install
+
 Windows PowerShell:
 
 ```powershell
@@ -79,10 +81,6 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
 npm install
-$env:VIREA_RAW_ROOT = "<path-to-full-raw-datasets>"
-python -m virea.cli build-demo --samples-per-dataset 7 --overwrite
-python -m virea.cli process --data-source demo --workers 8 --force
-python -m virea.cli serve --data-source demo
 ```
 
 macOS / Linux:
@@ -92,16 +90,49 @@ git clone git@github.com:Joker-of-Gotham/virea.git
 cd virea
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e ".[dev]"
+pip install -e ".[dev]"
 npm install
-export VIREA_RAW_ROOT="<path-to-full-raw-datasets>"
-python -m virea.cli build-demo --samples-per-dataset 7 --overwrite
-python -m virea.cli process --data-source demo --workers 8 --force
-python -m virea.cli serve --data-source demo
+```
+
+### 2. Download demo data
+
+Demo data (raw + processed) is hosted on HuggingFace:
+https://huggingface.co/datasets/ChikaKomari/virea-demo
+
+```bash
+# Download all demo data (raw + processed, ~4 GB)
+python scripts/download_demo.py
+
+# Or download only raw (re-process locally)
+python scripts/download_demo.py --raw-only
+```
+
+The script places files into `demo/raw/` and `demo/processed/` automatically.
+
+### 3. Process and preview
+
+```bash
+# Process demo data (skip if you downloaded processed/)
+python -m virea process --data-source demo --workers 8 --force
+
+# Launch the viewer
+python -m virea serve --data-source demo
 ```
 
 Open the server URL printed by the CLI, load a `.vrm`, choose a sample, then
 compare source, processed, and real avatar playback.
+
+### 4. Full dataset (optional)
+
+To use the full external dataset, set the environment variable:
+
+```powershell
+$env:VIREA_RAW_ROOT = "<path-to-full-raw-datasets>"
+```
+
+```bash
+export VIREA_RAW_ROOT="<path-to-full-raw-datasets>"
+```
 
 ## Pipeline
 
