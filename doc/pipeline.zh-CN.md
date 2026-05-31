@@ -13,6 +13,19 @@ cd virea
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
+npm install
+```
+
+macOS / Linux Bash:
+
+```bash
+git clone git@github.com:Joker-of-Gotham/virea.git
+cd virea
+
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+npm install
 ```
 
 如果使用本机完整数据源：
@@ -21,12 +34,21 @@ pip install -e ".[dev]"
 $env:VIREA_RAW_ROOT = "<path-to-full-raw-datasets>"
 ```
 
-如果仓库内没有 `vendor/three` 和 `vendor/three-vrm`，viewer 的 JS 依赖也通过
-环境变量提供：
+```bash
+export VIREA_RAW_ROOT="<path-to-full-raw-datasets>"
+```
+
+`npm install` 会把 viewer 所需的 `three` 和 `@pixiv/three-vrm` 安装到
+`node_modules`。如果要使用系统中已有的 JS 包，可以用环境变量覆盖：
 
 ```powershell
 $env:VIREA_THREE_ROOT = "<path-to-node_modules-three>"
 $env:VIREA_THREE_VRM_ROOT = "<path-to-node_modules-three-vrm>"
+```
+
+```bash
+export VIREA_THREE_ROOT="<path-to-node_modules-three>"
+export VIREA_THREE_VRM_ROOT="<path-to-node_modules-three-vrm>"
 ```
 
 ## 2. 构建 demo fixture
@@ -53,11 +75,11 @@ python -m virea.cli process --data-source demo --workers 8 --force
 
 处理 full 中的指定数据集：
 
-```powershell
-python -m virea.cli process `
-  --data-source full `
-  --datasets motionx susuinteracts `
-  --workers 8 `
+```bash
+python -m virea.cli process \
+  --data-source full \
+  --datasets motionx susuinteracts \
+  --workers 8 \
   --force
 ```
 
@@ -92,9 +114,16 @@ python -m virea.cli serve --data-source demo
 
 ```powershell
 python scripts/select_showcase_samples.py `
-  --metadata-root demo\processed\canonical\v0.1.0\metadata `
+  --metadata-root demo/processed/canonical/v0.1.0/metadata `
   --per-dataset 7 `
-  --out doc\showcase\showcase-samples.json
+  --out doc/showcase/showcase-samples.json
+```
+
+```bash
+python scripts/select_showcase_samples.py \
+  --metadata-root demo/processed/canonical/v0.1.0/metadata \
+  --per-dataset 7 \
+  --out doc/showcase/showcase-samples.json
 ```
 
 再用浏览器录制真实 VRM avatar：
@@ -106,19 +135,29 @@ $env:VIREA_SHOWCASE_VRM = "<path-to-avatar.vrm>"
 
 node scripts/render_showcase.mjs `
   --data-source demo `
-  --manifest doc\showcase\showcase-samples.json `
-  --out-dir doc\showcase\videos
+  --manifest doc/showcase/showcase-samples.json `
+  --out-dir doc/showcase/videos
+```
+
+```bash
+export PLAYWRIGHT_MODULE="<path-to-playwright-index.mjs>"
+export VIREA_SHOWCASE_SERVER="<viewer-server-url>"
+export VIREA_SHOWCASE_VRM="<path-to-avatar.vrm>"
+
+node scripts/render_showcase.mjs \
+  --data-source demo \
+  --manifest doc/showcase/showcase-samples.json \
+  --out-dir doc/showcase/videos
 ```
 
 当前仓库中的 49 个 WebM 结果视频就是用上述流程生成。
 
 ## 6. 验证
 
-```powershell
+```bash
 python -m compileall -q src
 python -m pytest -q
-node --check apps/viewer-web/app.js
-node --check apps/viewer-web/vrm-viewer.js
+npm run check
 python scripts/smoke_pipeline.py --data-source demo --max-frames 8
 python scripts/smoke_pipeline.py --data-source full --max-frames 8
 ```

@@ -100,7 +100,7 @@ class PreviewReader:
             edges=loaded["edges"],
             metadata={"coordinate_system": loaded["coordinate_system"], "from_artifact": True},
             quality=preview_quality(loaded["positions"]),
-            files={"source_snapshot": str(paths.source_snapshot)},
+            files={"source_snapshot": paths.source_snapshot.as_posix()},
         )
 
     def read_processed_preview(
@@ -137,14 +137,14 @@ class PreviewReader:
             frame_count=int(loaded["positions"].shape[0]),
         )
         try:
-            vrm_rel = str(vrm_path.relative_to(root))
+            vrm_rel = vrm_path.relative_to(root).as_posix()
         except ValueError:
-            vrm_rel = str(vrm_path)
+            vrm_rel = vrm_path.as_posix()
         files = {
             "vrm_positions": vrm_rel,
-            "canonical_motion": str(paths.canonical_motion),
-            "quality_report": str(paths.quality_report),
-            "metadata": str(paths.metadata),
+            "canonical_motion": paths.canonical_motion.as_posix(),
+            "quality_report": paths.quality_report.as_posix(),
+            "metadata": paths.metadata.as_posix(),
         }
         return PreviewPayload(
             stage="processed",

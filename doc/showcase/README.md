@@ -31,9 +31,16 @@ VIREA_SHOWCASE_VRM=<path-to-avatar.vrm>
 
 ```powershell
 python scripts/select_showcase_samples.py `
-  --metadata-root demo\processed\canonical\v0.1.0\metadata `
+  --metadata-root demo/processed/canonical/v0.1.0/metadata `
   --per-dataset 7 `
-  --out doc\showcase\showcase-samples.json
+  --out doc/showcase/showcase-samples.json
+```
+
+```bash
+python scripts/select_showcase_samples.py \
+  --metadata-root demo/processed/canonical/v0.1.0/metadata \
+  --per-dataset 7 \
+  --out doc/showcase/showcase-samples.json
 ```
 
 ## 录制策略
@@ -47,8 +54,18 @@ $env:VIREA_SHOWCASE_VRM = "<path-to-avatar.vrm>"
 
 node scripts/render_showcase.mjs `
   --data-source demo `
-  --manifest doc\showcase\showcase-samples.json `
-  --out-dir doc\showcase\videos
+  --manifest doc/showcase/showcase-samples.json `
+  --out-dir doc/showcase/videos
+```
+
+```bash
+export VIREA_SHOWCASE_SERVER="<viewer-server-url>"
+export VIREA_SHOWCASE_VRM="<path-to-avatar.vrm>"
+
+node scripts/render_showcase.mjs \
+  --data-source demo \
+  --manifest doc/showcase/showcase-samples.json \
+  --out-dir doc/showcase/videos
 ```
 
 默认输出 VP8 WebM，便于浏览器播放和轻量提交。GitHub 仓库 README 对内嵌
@@ -60,10 +77,20 @@ WebM 作为原始结果视频。
 如果需要重新生成 README 中的 GIF 预览，可以用任意本机 `ffmpeg`：
 
 ```powershell
-New-Item -ItemType Directory -Force doc\showcase\gifs | Out-Null
-Get-ChildItem doc\showcase\videos -Filter *.webm | ForEach-Object {
+New-Item -ItemType Directory -Force doc/showcase/gifs | Out-Null
+Get-ChildItem doc/showcase/videos -Filter *.webm | ForEach-Object {
   ffmpeg -y -i $_.FullName `
     -vf "fps=8,scale=160:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=64[p];[s1][p]paletteuse=dither=bayer:bayer_scale=4" `
-    ("doc\showcase\gifs\" + $_.BaseName + ".gif")
+    ("doc/showcase/gifs/" + $_.BaseName + ".gif")
 }
+```
+
+```bash
+mkdir -p doc/showcase/gifs
+for video in doc/showcase/videos/*.webm; do
+  base="$(basename "$video" .webm)"
+  ffmpeg -y -i "$video" \
+    -vf "fps=8,scale=160:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=64[p];[s1][p]paletteuse=dither=bayer:bayer_scale=4" \
+    "doc/showcase/gifs/${base}.gif"
+done
 ```

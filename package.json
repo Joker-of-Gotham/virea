@@ -1,0 +1,16 @@
+{
+  "name": "virea-viewer-runtime",
+  "private": true,
+  "type": "module",
+  "description": "Viewer runtime dependencies for VIREA.",
+  "scripts": {
+    "check": "node --check apps/viewer-web/app.js && node --check apps/viewer-web/vrm-viewer.js && node --check scripts/render_showcase.mjs"
+  },
+  "dependencies": {
+    "@pixiv/three-vrm": "3.5.1",
+    "three": "0.183.2"
+  },
+  "devDependencies": {
+    "playwright": "^1.59.0"
+  }
+}

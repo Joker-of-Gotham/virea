@@ -151,11 +151,11 @@ class ProcessingPipeline:
             },
             "annotations": clip.annotations,
             "files": {
-                "source_snapshot": str(paths.source_snapshot.relative_to(root)),
-                "canonical_motion": str(paths.canonical_motion.relative_to(root)),
-                "vrm_positions": str(paths.vrm_positions.relative_to(root)),
-                "quality_report": str(paths.quality_report.relative_to(root)),
-                "metadata": str(paths.metadata.relative_to(root)),
+                "source_snapshot": paths.source_snapshot.relative_to(root).as_posix(),
+                "canonical_motion": paths.canonical_motion.relative_to(root).as_posix(),
+                "vrm_positions": paths.vrm_positions.relative_to(root).as_posix(),
+                "quality_report": paths.quality_report.relative_to(root).as_posix(),
+                "metadata": paths.metadata.relative_to(root).as_posix(),
             },
             "quality": output.quality,
             "processing": {
@@ -167,13 +167,13 @@ class ProcessingPipeline:
 
         file_map = {
             "motion_uid": output.motion_uid,
-            "processed_root": str(root),
-            "source_snapshot": str(paths.source_snapshot),
-            "canonical_motion": str(paths.canonical_motion),
-            "vrm_positions": str(paths.vrm_positions),
-            "vrm_motion": str(legacy),
-            "quality_report": str(paths.quality_report),
-            "metadata": str(paths.metadata),
+            "processed_root": root.as_posix(),
+            "source_snapshot": paths.source_snapshot.relative_to(root).as_posix(),
+            "canonical_motion": paths.canonical_motion.relative_to(root).as_posix(),
+            "vrm_positions": paths.vrm_positions.relative_to(root).as_posix(),
+            "vrm_motion": legacy.relative_to(root).as_posix(),
+            "quality_report": paths.quality_report.relative_to(root).as_posix(),
+            "metadata": paths.metadata.relative_to(root).as_posix(),
         }
         output.paths = file_map
         return file_map
@@ -196,11 +196,12 @@ class ProcessingPipeline:
                     output.motion_uid,
                 )
                 if paths.exists():
+                    root = self.registry.paths.processed_root
                     output.paths = {
                         "motion_uid": output.motion_uid,
                         "skipped": "true",
-                        "source_snapshot": str(paths.source_snapshot),
-                        "vrm_positions": str(paths.vrm_positions),
+                        "source_snapshot": paths.source_snapshot.relative_to(root).as_posix(),
+                        "vrm_positions": paths.vrm_positions.relative_to(root).as_posix(),
                     }
                     return output
             self.persist(output)

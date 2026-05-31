@@ -59,8 +59,24 @@ def _mount_static_if_exists(app: FastAPI, route: str, directory: str | Path) -> 
         app.mount(route, StaticFiles(directory=str(path)), name=route.strip("/").replace("/", "_"))
 
 
-def _mount_static_from_env(app: FastAPI, route: str, env_name: str, project_relative_fallback: str) -> None:
-    _mount_static_if_exists(app, route, os.getenv(env_name) or project_relative_fallback)
+def _mount_static_first_existing(app: FastAPI, route: str, candidates: list[str | Path]) -> bool:
+    for directory in candidates:
+        path = Path(directory).expanduser()
+        if not path.is_absolute():
+            path = repo_root() / path
+        if path.exists():
+            app.mount(route, StaticFiles(directory=str(path)), name=route.strip("/").replace("/", "_"))
+            return True
+    return False
+
+
+def _mount_static_from_env(app: FastAPI, route: str, env_name: str, project_relative_fallbacks: list[str]) -> None:
+    candidates: list[str | Path] = []
+    env_value = os.getenv(env_name)
+    if env_value:
+        candidates.append(env_value)
+    candidates.extend(project_relative_fallbacks)
+    _mount_static_first_existing(app, route, candidates)
 
 
 @lru_cache(maxsize=4)
@@ -94,8 +110,13 @@ def create_app() -> FastAPI:
     ui_root = repo_root() / "apps" / "viewer-web"
     if ui_root.exists():
         app.mount("/ui", StaticFiles(directory=str(ui_root)), name="ui")
-    _mount_static_from_env(app, "/vendor/three", "VIREA_THREE_ROOT", "vendor/three")
-    _mount_static_from_env(app, "/vendor/three-vrm", "VIREA_THREE_VRM_ROOT", "vendor/three-vrm")
+    _mount_static_from_env(app, "/vendor/three", "VIREA_THREE_ROOT", ["node_modules/three", "vendor/three"])
+    _mount_static_from_env(
+        app,
+        "/vendor/three-vrm",
+        "VIREA_THREE_VRM_ROOT",
+        ["node_modules/@pixiv/three-vrm", "vendor/three-vrm"],
+    )
 
     @app.get("/")
     def root() -> FileResponse:
@@ -112,8 +133,8 @@ def create_app() -> FastAPI:
             "ok": True,
             "default_data_source": registry.paths.data_source,
             "available_data_sources": ProjectPaths.available_sources(),
-            "raw_root": str(registry.paths.raw_root),
-            "processed_root": str(registry.paths.processed_root),
+            "raw_root": registry.paths.raw_root.as_posix(),
+            "processed_root": registry.paths.processed_root.as_posix(),
             "datasets": registry.keys(),
         }
 

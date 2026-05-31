@@ -57,8 +57,8 @@ class DatasetRegistry:
     def to_dict(self) -> dict:
         return {
             "data_source": self.paths.data_source,
-            "raw_root": str(self.paths.raw_root),
-            "processed_root": str(self.paths.processed_root),
+            "raw_root": self.paths.raw_root.as_posix(),
+            "processed_root": self.paths.processed_root.as_posix(),
             "processing_version": self.paths.processing_version,
             "datasets": [record.to_dict() for record in self.iter_records()],
         }

@@ -30,7 +30,7 @@ class CatalogPipeline:
             datasets.append(
                 {
                     **record.to_dict(),
-                    "raw_root": str(root),
+                    "raw_root": root.as_posix(),
                     "exists": root.exists(),
                     "file_count": file_count,
                     "extensions": dict(extensions.most_common(16)),
@@ -38,7 +38,7 @@ class CatalogPipeline:
                 }
             )
         return {
-            "raw_root": str(self.registry.paths.raw_root),
-            "processed_root": str(self.registry.paths.processed_root),
+            "raw_root": self.registry.paths.raw_root.as_posix(),
+            "processed_root": self.registry.paths.processed_root.as_posix(),
             "datasets": datasets,
         }

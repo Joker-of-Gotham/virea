@@ -75,25 +75,28 @@ Windows PowerShell:
 ```powershell
 git clone git@github.com:Joker-of-Gotham/virea.git
 cd virea
-
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
-
-# Optional: point full mode at your local raw dataset root.
+npm install
 $env:VIREA_RAW_ROOT = "<path-to-full-raw-datasets>"
-
-# Optional: point the web viewer at local JS runtime packages if vendor/ is absent.
-$env:VIREA_THREE_ROOT = "<path-to-node_modules-three>"
-$env:VIREA_THREE_VRM_ROOT = "<path-to-node_modules-three-vrm>"
-
-# Build a small same-layout demo fixture from the local full source.
 python -m virea.cli build-demo --samples-per-dataset 7 --overwrite
-
-# Process demo clips into source, canonical, VRM positions, motion payloads, and quality reports.
 python -m virea.cli process --data-source demo --workers 8 --force
+python -m virea.cli serve --data-source demo
+```
 
-# Open the web viewer.
+macOS / Linux:
+
+```bash
+git clone git@github.com:Joker-of-Gotham/virea.git
+cd virea
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+npm install
+export VIREA_RAW_ROOT="<path-to-full-raw-datasets>"
+python -m virea.cli build-demo --samples-per-dataset 7 --overwrite
+python -m virea.cli process --data-source demo --workers 8 --force
 python -m virea.cli serve --data-source demo
 ```
 
@@ -131,7 +134,8 @@ committed into source or docs:
 - `VIREA_VRM_MODEL_ROOT`: optional VRM rest-template inspection root
 - `VIREA_VRM_MOTION_PYTHONPATH`: optional external `vrm_motion` Python package path
 - `VIREA_TMR_SRC`: optional HumanML3D/TMR decoder source path
-- `VIREA_THREE_ROOT` and `VIREA_THREE_VRM_ROOT`: optional viewer runtime packages
+- `VIREA_THREE_ROOT` and `VIREA_THREE_VRM_ROOT`: optional viewer runtime packages;
+  normally `npm install` is enough
 - `VIREA_SHOWCASE_SERVER` and `VIREA_SHOWCASE_VRM`: showcase renderer inputs
 - `VIREA_SERVE_HOST` and `VIREA_SERVE_PORT`: optional server bind settings
 
@@ -147,11 +151,10 @@ committed into source or docs:
 
 ## Checks
 
-```powershell
+```bash
 python -m compileall -q src
 python -m pytest -q
-node --check apps/viewer-web/app.js
-node --check apps/viewer-web/vrm-viewer.js
+npm run check
 python scripts/smoke_pipeline.py --data-source demo --max-frames 8
 python scripts/smoke_pipeline.py --data-source full --max-frames 8
 ```

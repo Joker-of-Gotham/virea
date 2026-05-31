@@ -9,7 +9,7 @@ demo/processed/  # generated source/canonical/VRM artifacts
 
 Build or refresh it with:
 
-```powershell
+```bash
 python -m virea.cli build-demo --samples-per-dataset 7 --overwrite
 python -m virea.cli process --data-source demo --workers 8 --force
 python -m virea.cli serve --data-source demo

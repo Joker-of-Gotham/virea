@@ -99,7 +99,7 @@ def _worker_process_sample(payload: dict[str, Any]) -> dict[str, Any]:
                 "status": "skipped",
                 "frame_count": frame_count,
                 "quality": quality,
-                "files": {"source_snapshot": str(paths.source_snapshot)},
+                "files": {"source_snapshot": paths.source_snapshot.as_posix()},
                 "elapsed_sec": 0.0,
             }
 
@@ -158,7 +158,7 @@ class BatchPipeline:
         start = perf_counter()
         report = BatchReport(
             data_source=self.registry.paths.data_source,
-            processed_root=str(self.registry.paths.processed_root),
+            processed_root=self.registry.paths.processed_root.as_posix(),
             workers=max(1, workers),
             total=len(tasks),
         )

@@ -31,8 +31,8 @@
 
 ## 验证命令
 
-```powershell
+```bash
 python -m pytest -q
-python scripts\smoke_pipeline.py --data-source demo --max-frames 8
-python scripts\smoke_pipeline.py --data-source full --max-frames 8
+python scripts/smoke_pipeline.py --data-source demo --max-frames 8
+python scripts/smoke_pipeline.py --data-source full --max-frames 8
 ```

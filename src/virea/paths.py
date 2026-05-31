@@ -10,6 +10,20 @@ DATA_SOURCE_FULL = "full"
 DATA_SOURCE_DEMO = "demo"
 AVAILABLE_DATA_SOURCES = (DATA_SOURCE_FULL, DATA_SOURCE_DEMO)
 
+
+def portable_path(path: Path, base: Path | None = None) -> str:
+    """Serialize a Path to a forward-slash string suitable for JSON/API output.
+
+    If base is provided, returns a relative path; otherwise returns absolute.
+    Always uses forward slashes for cross-platform compatibility.
+    """
+    if base is not None:
+        try:
+            path = path.relative_to(base)
+        except ValueError:
+            pass
+    return path.as_posix()
+
 _FULL_RAW_EXPECTED_SUBDIRS = ("SuSuInterActs", "amass", "beat")
 
 
@@ -87,13 +101,12 @@ class ProjectPaths:
     @classmethod
     def available_sources(cls, config: dict[str, Any] | None = None) -> dict[str, dict[str, Any]]:
         cfg = config or load_project_config()
-        root = repo_root()
         result: dict[str, dict[str, Any]] = {}
         for key in AVAILABLE_DATA_SOURCES:
             item = dict(cfg.get("data_sources", {}).get(key, {}))
             paths = cls(config=cfg, data_source=key)
-            item["raw_root"] = str(paths.raw_root)
-            item["processed_root"] = str(paths.processed_root)
+            item["raw_root"] = portable_path(paths.raw_root)
+            item["processed_root"] = portable_path(paths.processed_root)
             item["exists"] = paths.raw_root.exists()
             result[key] = item
         return result

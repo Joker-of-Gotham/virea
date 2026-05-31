@@ -49,8 +49,8 @@ def smoke_source(data_source: str, max_frames: int, persist: bool) -> dict[str, 
 
     return {
         "data_source": data_source,
-        "raw_root": str(registry.paths.raw_root),
-        "processed_root": str(registry.paths.processed_root),
+        "raw_root": registry.paths.raw_root.as_posix(),
+        "processed_root": registry.paths.processed_root.as_posix(),
         "max_frames": max_frames,
         "persist": persist,
         "reports": reports,
