@@ -6,6 +6,7 @@
 
 - `showcase-samples.json`: 每个数据集选出的 7 条样本及质量摘要
 - `videos/*.webm`: 用真实 VRM avatar 录制的 VP8 WebM 结果视频
+- `gifs/*.gif`: README 直接展示用的动画预览，点击后打开对应 WebM
 
 视频使用的本地模型：
 
@@ -49,4 +50,19 @@ node scripts/render_showcase.mjs `
   --vrm "C:\Users\explo\Downloads\VRM-Model-1.vrm"
 ```
 
-默认输出 VP8 WebM，便于浏览器播放和轻量提交。
+默认输出 VP8 WebM，便于浏览器播放和轻量提交。GitHub 仓库 README 对内嵌
+video 标签支持不稳定，因此根 README 使用 GIF 预览作为看板内联媒体，并保留
+WebM 作为原始结果视频。
+
+## README GIF 预览
+
+如果需要重新生成 README 中的 GIF 预览，可以用任意本机 `ffmpeg`：
+
+```powershell
+New-Item -ItemType Directory -Force doc\showcase\gifs | Out-Null
+Get-ChildItem doc\showcase\videos -Filter *.webm | ForEach-Object {
+  ffmpeg -y -i $_.FullName `
+    -vf "fps=8,scale=160:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=64[p];[s1][p]paletteuse=dither=bayer:bayer_scale=4" `
+    ("doc\showcase\gifs\" + $_.BaseName + ".gif")
+}
+```
