@@ -53,6 +53,16 @@ def _build_susu_split_files(demo_raw_root: Path, sample_id: str, copied: list[di
         copied.append({"source": "generated", "target": str(path), "bytes": path.stat().st_size})
 
 
+def _build_susu_split_files_multi(demo_raw_root: Path, sample_ids: list[str], copied: list[dict]) -> None:
+    split_root = demo_raw_root / "SuSuInterActs" / "split"
+    split_root.mkdir(parents=True, exist_ok=True)
+    content = "\n".join(sample_ids) + "\n"
+    for name in ("all", "train", "val", "test"):
+        path = split_root / f"{name}_file_list.txt"
+        path.write_text(content, encoding="utf-8")
+        copied.append({"source": "generated", "target": str(path), "bytes": path.stat().st_size})
+
+
 def _build_susu_text_files(full_raw_root: Path, demo_raw_root: Path, sample_id: str, copied: list[dict]) -> None:
     src = full_raw_root / "SuSuInterActs" / "text_data" / "motion2text.json"
     if not src.exists():
@@ -67,7 +77,7 @@ def _build_susu_text_files(full_raw_root: Path, demo_raw_root: Path, sample_id: 
         copied.append({"source": str(src), "target": str(dst), "bytes": dst.stat().st_size})
 
 
-def build_demo_dataset(max_rows: int = 4, overwrite: bool = False) -> dict:
+def build_demo_dataset(max_rows: int = 100, overwrite: bool = False, samples_per_dataset: int = 100) -> dict:
     full_registry = DatasetRegistry.default(data_source="full")
     full_raw_root = full_registry.paths.raw_root
     demo_paths = ProjectPaths(data_source="demo")
@@ -78,35 +88,31 @@ def build_demo_dataset(max_rows: int = 4, overwrite: bool = False) -> dict:
     demo_raw_root.mkdir(parents=True, exist_ok=True)
 
     copied: list[dict] = []
-    selected: dict[str, str] = {}
+    selected: dict[str, list[str]] = {}
     for record in full_registry.iter_records():
         if record.key == "humanml3d":
             _build_humanml3d_demo(full_raw_root, demo_raw_root, max_rows, copied)
-            selected[record.key] = "test/test-00000-of-00002/0"
+            selected[record.key] = [f"test/test-00000-of-00002/{i}" for i in range(min(max_rows, 100))]
             continue
 
         adapter = full_registry.adapter(record.key)
-        samples = adapter.discover(limit=250 if record.key == "susuinteracts" else 1)
+        discover_limit = max(samples_per_dataset * 2, 500)
+        samples = adapter.discover(limit=discover_limit)
         if not samples:
-            selected[record.key] = ""
+            selected[record.key] = []
             continue
-        if record.key == "susuinteracts":
-            sample = next(
-                (
-                    item
-                    for item in samples
-                    if item.related_paths.get("face", Path()).exists()
-                    and item.related_paths.get("audio", Path()).exists()
-                ),
-                samples[0],
-            )
-        else:
-            sample = samples[0]
-        selected[record.key] = sample.sample_id
-        _copy_related_sample(sample, full_raw_root, demo_raw_root, copied)
-        if record.key == "susuinteracts":
-            _build_susu_split_files(demo_raw_root, sample.sample_id, copied)
-            _build_susu_text_files(full_raw_root, demo_raw_root, sample.sample_id, copied)
+
+        chosen = samples[:samples_per_dataset]
+        selected[record.key] = [s.sample_id for s in chosen]
+        susu_split_ids: list[str] = []
+        for sample in chosen:
+            _copy_related_sample(sample, full_raw_root, demo_raw_root, copied)
+            if record.key == "susuinteracts":
+                susu_split_ids.append(sample.sample_id)
+                _build_susu_text_files(full_raw_root, demo_raw_root, sample.sample_id, copied)
+        if record.key == "susuinteracts" and susu_split_ids:
+            _build_susu_split_files_multi(demo_raw_root, susu_split_ids, copied)
+        print(f"  [{record.key}] copied {len(chosen)} samples", flush=True)
 
     manifest = {
         "schema_version": "virea.demo_manifest.v0.1.0",

@@ -10,6 +10,19 @@ DATA_SOURCE_FULL = "full"
 DATA_SOURCE_DEMO = "demo"
 AVAILABLE_DATA_SOURCES = (DATA_SOURCE_FULL, DATA_SOURCE_DEMO)
 
+_FULL_RAW_FALLBACK_LOCATIONS = [
+    # Each entry is a candidate path to search for the full raw dataset root.
+    # The first one that exists AND contains at least one expected subdirectory wins.
+    # Order: environment > sibling project > common data drive locations
+    "{repo_parent}/LLM-driven-VRM/vrm_motion/runtime/datasets/raw",
+    "D:/AI-Program-Project/LLM-driven-VRM/vrm_motion/runtime/datasets/raw",
+    "E:/data/raw",
+    "E:/datasets/raw",
+    "E:/AI-Program-Project/LLM-driven-VRM/vrm_motion/runtime/datasets/raw",
+]
+
+_FULL_RAW_EXPECTED_SUBDIRS = ("SuSuInterActs", "amass", "beat")
+
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
@@ -28,6 +41,18 @@ def _resolve_repo_relative(root: Path, value: str | Path) -> Path:
     return path
 
 
+def _auto_detect_full_raw_root(root: Path) -> Path:
+    """Auto-detect the full raw dataset root by probing known fallback locations."""
+    repo_parent = str(root.parent)
+    for template in _FULL_RAW_FALLBACK_LOCATIONS:
+        candidate = Path(template.format(repo_parent=repo_parent))
+        if not candidate.exists():
+            continue
+        if any((candidate / sub).exists() for sub in _FULL_RAW_EXPECTED_SUBDIRS):
+            return candidate
+    return root / "data" / "raw"
+
+
 class ProjectPaths:
     def __init__(self, config: dict[str, Any] | None = None, data_source: str | None = None) -> None:
         self.config = config or load_project_config()
@@ -39,36 +64,30 @@ class ProjectPaths:
             raise ValueError(f"unsupported VIREA data source: {selected_source}")
         self.data_source = selected_source
 
-        data_root_env = str(path_cfg.get("data_root_env", "VIREA_DATA_ROOT"))
         raw_root_env = str(path_cfg.get("raw_root_env", "VIREA_RAW_ROOT"))
         processed_root_env = str(path_cfg.get("processed_root_env", "VIREA_PROCESSED_ROOT"))
 
-        fallback_data_root = Path(str(path_cfg.get("default_workspace_data_root", ""))).expanduser()
-        if not fallback_data_root.exists():
-            sibling = self.root.parent / "LLM-driven-VRM" / "vrm_motion" / "runtime" / "datasets"
-            fallback_data_root = sibling if sibling.exists() else self.root / "data"
-
-        self.data_root = Path(os.getenv(data_root_env, str(fallback_data_root))).expanduser()
         source_cfg = dict(self.config.get("data_sources", {}).get(selected_source, {}))
         configured_raw_root = source_cfg.get("raw_root")
-        if configured_raw_root:
-            default_raw_root = _resolve_repo_relative(self.root, configured_raw_root)
-        else:
-            default_raw_root = self.data_root / "raw"
-        self.raw_root = Path(os.getenv(raw_root_env, str(default_raw_root))).expanduser()
 
-        processed_default = Path(str(path_cfg.get("default_processed_root", ""))).expanduser()
-        if not processed_default.is_absolute():
-            processed_default = self.root / processed_default
-        processed_subdir = str(path_cfg.get("processed_subdir", "virea_processed"))
-        if not str(path_cfg.get("default_processed_root", "")).strip():
-            processed_default = self.data_root / processed_subdir
+        if os.getenv(raw_root_env):
+            self.raw_root = Path(os.getenv(raw_root_env, "")).expanduser()
+        elif configured_raw_root:
+            self.raw_root = _resolve_repo_relative(self.root, configured_raw_root)
+        elif selected_source == DATA_SOURCE_FULL:
+            self.raw_root = _auto_detect_full_raw_root(self.root)
+        else:
+            self.raw_root = self.root / "demo" / "raw"
+
+        processed_default = self.root / "data" / "virea_processed"
         configured_processed_root = source_cfg.get("processed_root")
         if configured_processed_root:
             processed_default = _resolve_repo_relative(self.root, configured_processed_root)
         self.processed_root = Path(
             os.getenv(processed_root_env, str(processed_default))
         ).expanduser()
+
+        self.data_root = self.raw_root.parent
 
     @classmethod
     def available_sources(cls, config: dict[str, Any] | None = None) -> dict[str, dict[str, Any]]:
@@ -77,11 +96,10 @@ class ProjectPaths:
         result: dict[str, dict[str, Any]] = {}
         for key in AVAILABLE_DATA_SOURCES:
             item = dict(cfg.get("data_sources", {}).get(key, {}))
-            raw = item.get("raw_root", "")
-            processed = item.get("processed_root", "")
-            item["raw_root"] = str(_resolve_repo_relative(root, raw)) if raw else ""
-            item["processed_root"] = str(_resolve_repo_relative(root, processed)) if processed else ""
-            item["exists"] = bool(item.get("raw_root") and Path(str(item["raw_root"])).exists())
+            paths = cls(config=cfg, data_source=key)
+            item["raw_root"] = str(paths.raw_root)
+            item["processed_root"] = str(paths.processed_root)
+            item["exists"] = paths.raw_root.exists()
             result[key] = item
         return result
 

@@ -8,27 +8,41 @@ paths:
   processed_root_env: VIREA_PROCESSED_ROOT
   data_source_env: VIREA_DATA_SOURCE
   vrm_model_root_env: VIREA_VRM_MODEL_ROOT
-  # Local fallback for the current workspace. Environment variables override it.
-  default_workspace_data_root: D:/AI-Program-Project/LLM-driven-VRM/vrm_motion/runtime/datasets
+  # VRM model fallback (machine-specific, override with VIREA_VRM_MODEL_ROOT)
   default_vrm_model_root: D:/AI-Program-Project/LLM-driven-VRM/vrm_motion/vrm_model
-  # Processed data defaults to this repository's ignored data/ directory so the
-  # reference LLM-driven-VRM tree is not modified unless explicitly requested.
+  # Processed data defaults to this repository's ignored data/ directory.
   default_processed_root: data/virea_processed
   processed_subdir: virea_processed
 
 data_sources:
+  # ─── full ───────────────────────────────────────────────────────────────────
+  # The COMPLETE external dataset. Lives OUTSIDE this repository on a dedicated
+  # data drive. Path varies by machine — configure via environment variable:
+  #   $env:VIREA_RAW_ROOT = "E:/your/data/raw"        (PowerShell)
+  #   export VIREA_RAW_ROOT="/mnt/data/raw"            (Linux/Mac)
+  # If VIREA_RAW_ROOT is not set, the system auto-detects from known locations.
   full:
-    label: Full local raw datasets
-    raw_root: D:/AI-Program-Project/LLM-driven-VRM/vrm_motion/runtime/datasets/raw
+    label: Full external raw datasets (machine-specific path)
     processed_root: data/virea_processed/full
-    description: Uses the complete local raw dataset directory provided outside this repository.
+    description: >
+      Complete raw dataset collection stored on an external/dedicated data drive.
+      NOT inside this repository. Set VIREA_RAW_ROOT env var to specify the path,
+      or the system will auto-detect from known fallback locations.
+
+  # ─── demo ───────────────────────────────────────────────────────────────────
+  # A small local fixture (subset of full) inside this repository for quick
+  # end-to-end testing without requiring the full dataset drive.
   demo:
-    label: Local demo raw fixture
+    label: Local demo fixture (project-internal subset)
     raw_root: demo/raw
     processed_root: demo/processed
-    description: Uses a small same-layout fixture under virea/demo/raw for end-to-end tests.
+    description: >
+      Small same-layout fixture under virea/demo/raw/ for quick end-to-end tests.
+      Built from 'full' source via: python -m virea.cli build-demo
 
 runtime:
   target_fps: 30
   preview_max_frames: 180
   processing_version: v0.1.0
+  batch_workers: 0
+  batch_skip_existing: true

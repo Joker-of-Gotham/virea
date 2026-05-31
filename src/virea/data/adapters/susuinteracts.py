@@ -102,6 +102,10 @@ class SuSuInterActsAdapter(BaseDatasetAdapter):
         data = np.load(path, allow_pickle=True).item()
         motion = {key: np.asarray(value, dtype=np.float32) for key, value in data.items() if key in {"body", "left", "right", "positions"}}
         frame_count = int(next(iter(motion.values())).shape[0]) if motion else 0
+        if "body" in motion and frame_count > 1:
+            body_arr = motion["body"]
+            if body_arr.std(axis=0).max() < 1e-6:
+                raise ValueError(f"SuSuInterActs sample is static/frozen (all frames identical): {sample_id}")
         motion["fps"] = 20.0
         source_format, codec_key = self._profile_for(sample_id, has_positions="positions" in motion)
         face_path = self._face_path(sample_id)

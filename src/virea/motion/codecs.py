@@ -8,16 +8,16 @@ from typing import Any
 
 import numpy as np
 
-from virea.data.types import PreviewPayload, RawClip
+from virea.data.types import RawClip
 from virea.motion.canonical import CORE_INDEX, HAND_INDEX, identity_quats, pack_sequence
-from virea.motion.quality import preview_quality
 from virea.motion.retarget import body_positions_from_fk_positions, fit_positions_to_vrm, retarget_named_quats_to_vrm
-from virea.motion.rotation import axis_angle_to_quat_xyzw, quat_inverse_xyzw, quat_multiply_xyzw, sixd_to_quat_xyzw
+from virea.motion.snapshot import SourceSnapshot
+from virea.motion.source_fk import SUSU_MAYA_AIM_AXES, center_positions_at_root, positions_from_global_rotations, source_fk_from_body_quats, source_offsets_from_globals, source_positions_normalized
+from virea.motion.rotation import axis_angle_to_quat_xyzw, quat_inverse_xyzw, quat_multiply_xyzw, sixd_rows_to_quat_xyzw
 from virea.motion.skeleton import (
     BODY_BONES,
     BODY_EDGES,
     BODY_INDEX,
-    BODY_SOURCE_REST_OFFSETS,
     CANONICAL_PARENT,
     CANONICAL_BODY_WITH_ROOT,
     DEFAULT_REST_OFFSETS,
@@ -31,53 +31,34 @@ from virea.motion.skeleton import (
 class CanonicalResult:
     sequence: np.ndarray
     positions: np.ndarray
-    source_positions: np.ndarray
     joint_names: list[str]
     edges: list[tuple[int, int]]
     metadata: dict[str, Any]
+    retarget_source_positions: np.ndarray | None = None
 
 
 class MotionCodec:
     key = "base"
 
-    def to_source_preview(self, clip: RawClip) -> PreviewPayload:
-        result = self.to_canonical(clip)
-        return PreviewPayload(
-            stage="raw",
-            sample=clip.sample,
-            fps=float(clip.motion.get("fps", clip.sample.fps or 30.0)),
-            positions=result.source_positions,
-            joint_names=result.joint_names,
-            edges=result.edges,
-            annotations=clip.annotations,
-            metadata={"source_format": clip.sample.source_format, **result.metadata},
-            quality=preview_quality(result.source_positions),
-        )
+    def extract_source(self, clip: RawClip) -> SourceSnapshot:
+        raise NotImplementedError
 
     def to_canonical(self, clip: RawClip) -> CanonicalResult:
         raise NotImplementedError
-
-    def to_processed_preview(self, clip: RawClip) -> PreviewPayload:
-        result = self.to_canonical(clip)
-        return PreviewPayload(
-            stage="processed",
-            sample=clip.sample,
-            fps=float(clip.motion.get("fps", clip.sample.fps or 30.0)),
-            positions=result.positions,
-            joint_names=result.joint_names,
-            edges=result.edges,
-            annotations=clip.annotations,
-            metadata=result.metadata,
-            quality=preview_quality(result.positions, result.source_positions if result.source_positions.shape == result.positions.shape else None),
-        )
 
 
 class AxisAngleBody22Codec(MotionCodec):
     key = "axis_angle_body22"
 
-    def __init__(self, source_rest_offsets: dict[str, list[float]] | None = None, source_profile: str = "smplh_body22") -> None:
-        self.source_rest_offsets = source_rest_offsets or BODY_SOURCE_REST_OFFSETS
+    def __init__(
+        self,
+        source_rest_offsets: dict[str, list[float]] | None = None,
+        source_profile: str = "smplh_body22",
+        world_basis: str = "z_up_to_y_up",
+    ) -> None:
+        self.source_rest_offsets = source_rest_offsets or DEFAULT_REST_OFFSETS
         self.source_profile = source_profile
+        self.world_basis = world_basis
 
     def _body_quats(self, poses: np.ndarray) -> np.ndarray:
         arr = np.asarray(poses, dtype=np.float32)
@@ -109,11 +90,11 @@ class AxisAngleBody22Codec(MotionCodec):
             root_rotation_xyzw=body_quats[:, BODY_INDEX["hips"]],
             local_quats_by_name={name: body_quats[:, idx] for idx, name in enumerate(BODY_BONES) if name != "hips"},
             source_body_rest_offsets=self.source_rest_offsets,
+            world_basis=self.world_basis,
         )
         return CanonicalResult(
             sequence=retarget["sequence"],
             positions=retarget["positions"],
-            source_positions=retarget["source_positions"],
             joint_names=FK_BONES,
             edges=FK_EDGES,
             metadata={
@@ -123,22 +104,33 @@ class AxisAngleBody22Codec(MotionCodec):
                 "target_skeleton": "vrm1_humanoid",
                 "retarget_mode": retarget["mode"],
                 "retarget_scale": retarget["scale"],
+                "declared_world_basis": self.world_basis,
                 "world_basis": retarget.get("world_basis", {}),
             },
+            retarget_source_positions=retarget.get("source_positions"),
         )
 
-    def to_source_preview(self, clip: RawClip) -> PreviewPayload:
-        result = self.to_canonical(clip)
-        return PreviewPayload(
-            stage="raw",
-            sample=clip.sample,
+    def extract_source(self, clip: RawClip) -> SourceSnapshot:
+        poses = np.asarray(clip.motion["poses"], dtype=np.float32)
+        translation = np.asarray(clip.motion.get("translation"), dtype=np.float32)
+        if translation.ndim != 2 or translation.shape[0] != poses.shape[0]:
+            translation = np.zeros((poses.shape[0], 3), dtype=np.float32)
+        body_quats = self._body_quats(poses)
+        positions, names, edges = source_fk_from_body_quats(
+            translation,
+            body_quats[:, BODY_INDEX["hips"]],
+            {name: body_quats[:, idx] for idx, name in enumerate(BODY_BONES) if name != "hips"},
+            self.source_rest_offsets,
+            normalize_world=True,
+            world_basis=self.world_basis,
+        )
+        return SourceSnapshot(
+            positions=positions,
+            joint_names=names,
+            edges=edges,
             fps=float(clip.motion.get("fps", clip.sample.fps or 30.0)),
-            positions=result.source_positions,
-            joint_names=BODY_BONES,
-            edges=BODY_EDGES,
-            annotations=clip.annotations,
-            metadata={"codec": self.key, "source_profile": self.source_profile, "source_format": clip.sample.source_format, "world_basis": result.metadata.get("world_basis", {})},
-            quality=preview_quality(result.source_positions),
+            coordinate_system="world_normalized",
+            metadata={"codec": self.key, "source_profile": self.source_profile, "declared_world_basis": self.world_basis},
         )
 
 
@@ -179,6 +171,16 @@ SMPLX_HAND_INDEX = {
 class SMPLXFullposeCodec(MotionCodec):
     key = "smplx_fullpose"
 
+    def _world_basis_for_clip(self, clip: RawClip) -> str:
+        metadata = dict(clip.motion.get("source_metadata", {}))
+        if metadata.get("declared_world_basis"):
+            return str(metadata["declared_world_basis"])
+        if metadata.get("world_basis") and isinstance(metadata["world_basis"], str):
+            return str(metadata["world_basis"])
+        if clip.sample.dataset == "grab":
+            return "z_up_to_y_up"
+        return "identity_y_up"
+
     def to_canonical(self, clip: RawClip) -> CanonicalResult:
         fullpose = np.asarray(clip.motion["fullpose"], dtype=np.float32)
         if fullpose.ndim != 2 or fullpose.shape[1] < 165:
@@ -186,6 +188,7 @@ class SMPLXFullposeCodec(MotionCodec):
         translation = np.asarray(clip.motion.get("translation"), dtype=np.float32)
         if translation.ndim != 2 or translation.shape[0] != fullpose.shape[0]:
             translation = np.zeros((fullpose.shape[0], 3), dtype=np.float32)
+        world_basis = self._world_basis_for_clip(clip)
         quats = axis_angle_to_quat_xyzw(fullpose[:, :165].reshape(fullpose.shape[0], 55, 3))
         frame_count = quats.shape[0]
         core = identity_quats(frame_count, len(CORE_INDEX))
@@ -201,14 +204,14 @@ class SMPLXFullposeCodec(MotionCodec):
             root_translation=translation,
             root_rotation_xyzw=quats[:, BODY_INDEX["hips"]],
             local_quats_by_name={name: quats[:, idx] for idx, name in enumerate(BODY_BONES) if name != "hips"},
-            source_body_rest_offsets=BODY_SOURCE_REST_OFFSETS,
+            source_body_rest_offsets=DEFAULT_REST_OFFSETS,
             hand_quats_by_name={name: hands[:, idx] for idx, name in enumerate(HAND_INDEX)},
             source_hand_rest_offsets=DEFAULT_REST_OFFSETS,
+            world_basis=world_basis,
         )
         return CanonicalResult(
             sequence=retarget["sequence"],
             positions=retarget["positions"],
-            source_positions=retarget["source_positions"],
             joint_names=FK_BONES,
             edges=FK_EDGES,
             metadata={
@@ -218,29 +221,40 @@ class SMPLXFullposeCodec(MotionCodec):
                 "target_skeleton": "vrm1_humanoid",
                 "retarget_mode": retarget["mode"],
                 "retarget_scale": retarget["scale"],
-                "world_basis": retarget.get("world_basis", {}),
                 **dict(clip.motion.get("source_metadata", {})),
+                "declared_world_basis": world_basis,
+                "world_basis": retarget.get("world_basis", {}),
             },
+            retarget_source_positions=retarget.get("source_positions"),
         )
 
-    def to_source_preview(self, clip: RawClip) -> PreviewPayload:
-        result = self.to_canonical(clip)
-        return PreviewPayload(
-            stage="raw",
-            sample=clip.sample,
+    def extract_source(self, clip: RawClip) -> SourceSnapshot:
+        fullpose = np.asarray(clip.motion["fullpose"], dtype=np.float32)
+        translation = np.asarray(clip.motion.get("translation"), dtype=np.float32)
+        if translation.ndim != 2 or translation.shape[0] != fullpose.shape[0]:
+            translation = np.zeros((fullpose.shape[0], 3), dtype=np.float32)
+        world_basis = self._world_basis_for_clip(clip)
+        quats = axis_angle_to_quat_xyzw(fullpose[:, :165].reshape(fullpose.shape[0], 55, 3))
+        positions, names, edges = source_fk_from_body_quats(
+            translation,
+            quats[:, BODY_INDEX["hips"]],
+            {name: quats[:, idx] for idx, name in enumerate(BODY_BONES) if name != "hips"},
+            DEFAULT_REST_OFFSETS,
+            normalize_world=True,
+            world_basis=world_basis,
+        )
+        return SourceSnapshot(
+            positions=positions,
+            joint_names=names,
+            edges=edges,
             fps=float(clip.motion.get("fps", clip.sample.fps or 30.0)),
-            positions=result.source_positions,
-            joint_names=BODY_BONES,
-            edges=BODY_EDGES,
-            annotations=clip.annotations,
+            coordinate_system="world_normalized",
             metadata={
                 "codec": self.key,
                 "source_profile": "smplx_fullpose55",
-                "source_format": clip.sample.source_format,
-                "world_basis": result.metadata.get("world_basis", {}),
+                "declared_world_basis": world_basis,
                 **dict(clip.motion.get("source_metadata", {})),
             },
-            quality=preview_quality(result.source_positions),
         )
 
 
@@ -311,9 +325,15 @@ def _canonical_edges_for_names(joint_names: list[str]) -> list[tuple[int, int]]:
 class PositionSequenceCodec(MotionCodec):
     key = "position_sequence"
 
-    def __init__(self, default_joint_names: list[str] | None = None, source_profile: str = "position_sequence") -> None:
+    def __init__(
+        self,
+        default_joint_names: list[str] | None = None,
+        source_profile: str = "position_sequence",
+        world_basis: str = "z_up_to_y_up",
+    ) -> None:
         self.default_joint_names = default_joint_names or SMPL24_NAMES
         self.source_profile = source_profile
+        self.world_basis = world_basis
 
     def to_canonical(self, clip: RawClip) -> CanonicalResult:
         source_positions = np.asarray(clip.motion["positions"], dtype=np.float32)
@@ -335,11 +355,10 @@ class PositionSequenceCodec(MotionCodec):
         target = target.copy()
         source_edges = _canonical_edges_for_names(mapped_names)
         body_positions = body_positions_from_fk_positions(target, mapped_names)
-        retarget = fit_positions_to_vrm(body_positions)
+        retarget = fit_positions_to_vrm(body_positions, world_basis=self.world_basis)
         return CanonicalResult(
             sequence=retarget["sequence"],
             positions=retarget["positions"],
-            source_positions=retarget["source_positions"],
             joint_names=FK_BONES,
             edges=FK_EDGES,
             metadata={
@@ -357,29 +376,38 @@ class PositionSequenceCodec(MotionCodec):
                 "native_mapped_joint_names": mapped_names,
                 "native_mapped_edges": source_edges,
                 "retarget_scale": retarget["scale"],
+                "declared_world_basis": self.world_basis,
                 "world_basis": retarget.get("world_basis", {}),
             },
+            retarget_source_positions=retarget.get("source_positions"),
         )
 
-    def to_source_preview(self, clip: RawClip) -> PreviewPayload:
-        result = self.to_canonical(clip)
-        return PreviewPayload(
-            stage="raw",
-            sample=clip.sample,
+    def extract_source(self, clip: RawClip) -> SourceSnapshot:
+        source_positions = np.asarray(clip.motion["positions"], dtype=np.float32)
+        source_names = clip.source_joint_names or self.default_joint_names[: source_positions.shape[1]]
+        mapped_names: list[str] = []
+        mapped_positions: list[np.ndarray] = []
+        seen: set[str] = set()
+        for source_index, source_name in enumerate(source_names):
+            canonical = GUOH3D_TO_CANONICAL.get(source_name, source_name)
+            if canonical in BODY_BONES and canonical not in seen:
+                mapped_names.append(canonical)
+                mapped_positions.append(source_positions[:, source_index])
+                seen.add(canonical)
+        if mapped_positions:
+            body_pos = body_positions_from_fk_positions(
+                np.stack(mapped_positions, axis=1).astype(np.float32), mapped_names
+            )
+            positions = source_positions_normalized(body_pos, BODY_BONES, world_basis=self.world_basis)
+        else:
+            positions = center_positions_at_root(source_positions.copy())
+        return SourceSnapshot(
+            positions=positions,
+            joint_names=list(BODY_BONES),
+            edges=list(BODY_EDGES),
             fps=float(clip.motion.get("fps", clip.sample.fps or 20.0)),
-            positions=result.source_positions,
-            joint_names=list(result.metadata.get("source_joint_names", result.joint_names)),
-            edges=[tuple(edge) for edge in result.metadata.get("source_edges", result.edges)],
-            annotations=clip.annotations,
-            metadata={
-                "codec": self.key,
-                "source_profile": self.source_profile,
-                "source_format": clip.sample.source_format,
-                "source_joint_names": clip.source_joint_names or self.default_joint_names,
-                "source_mapped_body_preview": True,
-                "world_basis": result.metadata.get("world_basis", {}),
-            },
-            quality=preview_quality(result.source_positions),
+            coordinate_system="world_normalized",
+            metadata={"codec": self.key, "source_profile": self.source_profile, "declared_world_basis": self.world_basis},
         )
 
 
@@ -433,20 +461,21 @@ class HumanML3D263Codec(PositionSequenceCodec):
         result.metadata["source_edges"] = mapped_edges
         return result
 
-    def to_source_preview(self, clip: RawClip) -> PreviewPayload:
-        result = self.to_canonical(clip)
-        source_names = list(result.metadata.get("source_joint_names", result.joint_names))
-        source_edges = [tuple(edge) for edge in result.metadata.get("source_edges", result.edges)]
-        return PreviewPayload(
-            stage="raw",
-            sample=clip.sample,
+    def extract_source(self, clip: RawClip) -> SourceSnapshot:
+        motion = np.asarray(clip.motion["motion"], dtype=np.float32)
+        positions, names, decoder_meta = self._decode_positions(motion)
+        canonical_names = [GUOH3D_TO_CANONICAL.get(n, n) for n in names]
+        body_pos = body_positions_from_fk_positions(
+            np.asarray(positions, dtype=np.float32), canonical_names
+        )
+        normalized = source_positions_normalized(body_pos, BODY_BONES, world_basis=self.world_basis)
+        return SourceSnapshot(
+            positions=normalized,
+            joint_names=list(BODY_BONES),
+            edges=list(BODY_EDGES),
             fps=float(clip.motion.get("fps", clip.sample.fps or 20.0)),
-            positions=result.source_positions,
-            joint_names=source_names,
-            edges=source_edges,
-            annotations=clip.annotations,
-            metadata={"codec": self.key, "source_profile": "humanml3d_263d", **result.metadata},
-            quality=preview_quality(result.source_positions),
+            coordinate_system="world_normalized",
+            metadata={"codec": self.key, "source_profile": "humanml3d_263d", "declared_world_basis": self.world_basis, **decoder_meta},
         )
 
 
@@ -586,6 +615,7 @@ class SuSuProfile:
     path_token: str
     position_scale: float
     root_translation_scale: float
+    position_world_basis: str
     root_axes: tuple[int, int, int] = (0, 2, 1)
     root_translation_mode: str = "absolute_xzy_zeroed"
 
@@ -593,8 +623,9 @@ class SuSuProfile:
 SUSU_RETARGET_MAYA_PROFILE = SuSuProfile(
     name="susu_retarget_maya_6d_body_hands",
     path_token="fbx_to_json_data_susu_retarget_maya/",
-    position_scale=1.0,
+    position_scale=0.01,
     root_translation_scale=1.0,
+    position_world_basis="neg_z_up_to_y_up",
     root_translation_mode="absolute_xzy_zeroed_auto_units",
 )
 SUSU_CHONGLU_PROFILE = SuSuProfile(
@@ -602,6 +633,7 @@ SUSU_CHONGLU_PROFILE = SuSuProfile(
     path_token="fbx_to_json_data_susu_chonglu/",
     position_scale=0.01,
     root_translation_scale=0.01,
+    position_world_basis="identity_y_up",
     root_translation_mode="absolute_xzy_cm_zeroed",
 )
 SUSU_PROFILE_BY_CODEC = {
@@ -680,7 +712,7 @@ class SuSu6DCodec(MotionCodec):
         profile = self._select_profile(clip, has_positions="positions" in clip.motion)
         available_positions = self._positions_from_available_data(clip, profile)
         root_translation, root_translation_effective_scale, root_translation_unit = self._root_translation(body, profile)
-        body_quats = sixd_to_quat_xyzw(body[:, 3:].reshape(frame_count, 25, 6))
+        body_quats = sixd_rows_to_quat_xyzw(body[:, 3:].reshape(frame_count, 25, 6))
         root_rot, local_body_quats, global_body_quats = _susu_body_global_to_local(body_quats)
         core = identity_quats(frame_count, len(CORE_INDEX))
         hand = identity_quats(frame_count, len(HAND_INDEX))
@@ -690,34 +722,25 @@ class SuSu6DCodec(MotionCodec):
         for side_key, map_side in [("left", "left"), ("right", "right")]:
             if side_key not in clip.motion:
                 continue
-            hand_quats = sixd_to_quat_xyzw(np.asarray(clip.motion[side_key], dtype=np.float32).reshape(frame_count, 20, 6))
+            hand_quats = sixd_rows_to_quat_xyzw(np.asarray(clip.motion[side_key], dtype=np.float32).reshape(frame_count, 20, 6))
             for canonical, local_quat in _susu_hand_global_to_local(hand_quats, map_side, global_body_quats).items():
                 hand[:, HAND_INDEX[canonical]] = local_quat
+        use_fixed_axes = False
         if available_positions is not None:
             native_positions, native_names, native_edges = self._canonical_body_from_source_positions(available_positions)
             body_positions = body_positions_from_fk_positions(native_positions, native_names)
-            retarget = fit_positions_to_vrm(body_positions)
-            source_positions = retarget["source_positions"]
-            source_names = BODY_BONES
-            source_edges = BODY_EDGES
+            retarget = fit_positions_to_vrm(body_positions, world_basis=profile.position_world_basis)
         else:
-            native_names = []
-            native_edges = []
-            retarget = retarget_named_quats_to_vrm(
-                root_translation=root_translation,
-                root_rotation_xyzw=root_rot,
-                local_quats_by_name={name: core[:, idx] for idx, name in enumerate(CORE_INDEX)},
-                source_body_rest_offsets=DEFAULT_REST_OFFSETS,
-                hand_quats_by_name={name: hand[:, idx] for idx, name in enumerate(HAND_INDEX)},
-                source_hand_rest_offsets=DEFAULT_REST_OFFSETS,
+            fk_positions = positions_from_global_rotations(
+                root_translation, global_body_quats,
+                fixed_aim_axes=SUSU_MAYA_AIM_AXES if use_fixed_axes else None,
             )
-            source_positions = retarget["source_positions"]
-            source_names = BODY_BONES
-            source_edges = BODY_EDGES
+            retarget = fit_positions_to_vrm(fk_positions, world_basis="identity_y_up")
+            native_names = list(BODY_BONES)
+            native_edges = list(BODY_EDGES)
         return CanonicalResult(
             sequence=retarget["sequence"],
             positions=retarget["positions"],
-            source_positions=source_positions,
             joint_names=FK_BONES,
             edges=FK_EDGES,
             metadata={
@@ -728,59 +751,78 @@ class SuSu6DCodec(MotionCodec):
                 "root_translation_effective_scale": root_translation_effective_scale,
                 "root_translation_unit": root_translation_unit,
                 "position_scale": profile.position_scale,
+                "declared_world_basis": profile.position_world_basis if available_positions is not None else "identity_y_up",
                 "source_positions_available": available_positions is not None,
-                "preview_from_source_positions": False,
-                "source_coordinates_preserved": False,
-                "source_joint_names": source_names,
-                "source_edges": source_edges,
                 "native_mapped_joint_names": native_names,
                 "native_mapped_edges": native_edges,
                 "retarget_mode": retarget["mode"],
                 "retarget_scale": retarget["scale"],
                 "world_basis": retarget.get("world_basis", {}),
-                "rotation_6d_layout": "column_major_first_two_columns",
+                "rotation_6d_layout": "row_major_first_two_rows",
                 "rotation_space": "global_6d_converted_to_parent_local_quaternions",
             },
+            retarget_source_positions=retarget.get("source_positions"),
         )
 
-    def to_source_preview(self, clip: RawClip) -> PreviewPayload:
+    def extract_source(self, clip: RawClip) -> SourceSnapshot:
         profile = self._select_profile(clip, has_positions="positions" in clip.motion)
-        positions = self._positions_from_available_data(clip, profile)
-        total_joints = int(positions.shape[1]) if positions is not None else 0
-        result = self.to_canonical(clip)
-        positions = result.source_positions
-        total_joints = int(total_joints or positions.shape[1])
-        joint_names = list(result.metadata.get("source_joint_names", BODY_BONES))
-        edges = [tuple(edge) for edge in result.metadata.get("source_edges", BODY_EDGES)]
-        return PreviewPayload(
-            stage="raw",
-            sample=clip.sample,
-            fps=float(clip.motion.get("fps", clip.sample.fps or 20.0)),
+        available_positions = self._positions_from_available_data(clip, profile)
+        fps = float(clip.motion.get("fps", clip.sample.fps or 20.0))
+        if available_positions is not None:
+            native_positions, native_names, native_edges = self._canonical_body_from_source_positions(available_positions)
+            body_pos = body_positions_from_fk_positions(native_positions, native_names)
+            normalized = source_positions_normalized(body_pos, BODY_BONES, world_basis=profile.position_world_basis)
+            return SourceSnapshot(
+                positions=normalized,
+                joint_names=list(BODY_BONES),
+                edges=list(BODY_EDGES),
+                fps=fps,
+                coordinate_system="world_normalized",
+                metadata={
+                    "codec": clip.sample.codec_key,
+                    "source_profile": profile.name,
+                    "position_scale": profile.position_scale,
+                    "declared_world_basis": profile.position_world_basis,
+                },
+            )
+        body = np.asarray(clip.motion["body"], dtype=np.float32)
+        frame_count = body.shape[0]
+        root_translation, _, unit = self._root_translation(body, profile)
+        body_quats = sixd_rows_to_quat_xyzw(body[:, 3:].reshape(frame_count, 25, 6))
+        _, _, global_body_quats = _susu_body_global_to_local(body_quats)
+        use_fixed_axes = False
+        positions = positions_from_global_rotations(
+            root_translation, global_body_quats,
+            fixed_aim_axes=SUSU_MAYA_AIM_AXES if use_fixed_axes else None,
+        )
+        from virea.motion.retarget import _target_scale_from_positions
+        scale = _target_scale_from_positions(positions)
+        positions = positions * np.float32(scale)
+        positions = positions - positions[:1, BODY_INDEX["hips"]].reshape(1, 1, 3)
+        return SourceSnapshot(
             positions=positions,
-            joint_names=joint_names,
-            edges=edges,
-            annotations=clip.annotations,
+            joint_names=list(BODY_BONES),
+            edges=list(BODY_EDGES),
+            fps=fps,
+            coordinate_system="world_normalized",
             metadata={
                 "codec": clip.sample.codec_key,
                 "source_profile": profile.name,
-                "source_format": clip.sample.source_format,
-                "root_translation": result.metadata.get("root_translation"),
-                "root_translation_effective_scale": result.metadata.get("root_translation_effective_scale"),
-                "root_translation_unit": result.metadata.get("root_translation_unit"),
-                "position_scale": profile.position_scale,
-                "rotation_space": result.metadata.get("rotation_space"),
-                "source_position_joint_count": total_joints,
-                "rendered_joint_count": int(positions.shape[1]),
-                "world_basis": result.metadata.get("world_basis", {}),
+                "root_translation_unit": unit,
+                "declared_world_basis": "identity_y_up",
+                "rotation_space": "global_6d_positions_from_aim_axes",
             },
-            quality=preview_quality(positions),
         )
 
 
 def default_codecs() -> dict[str, MotionCodec]:
     return {
         "axis_angle_body22": AxisAngleBody22Codec(),
-        "beat_axis_angle_body22": AxisAngleBody22Codec(source_rest_offsets=DEFAULT_REST_OFFSETS, source_profile="beat_bvh_body22"),
+        "beat_axis_angle_body22": AxisAngleBody22Codec(
+            source_rest_offsets=DEFAULT_REST_OFFSETS,
+            source_profile="beat_bvh_body22",
+            world_basis="identity_y_up",
+        ),
         "smplx_fullpose": SMPLXFullposeCodec(),
         "position_sequence": PositionSequenceCodec(),
         "humanml3d_263d": HumanML3D263Codec(),

@@ -55,6 +55,7 @@ class MotionXAdapter(BaseDatasetAdapter):
             "sub_source": Path(sample_id).parts[2] if len(Path(sample_id).parts) > 2 else "",
             "translation_scale": translation_scale,
             "translation_scale_rule": "scale_0.01_when_translation_span_or_abs_position_exceeds_20",
+            "declared_world_basis": "identity_y_up",
         }
         for kind in ("body_texts", "hand_texts"):
             frame_path = self._frame_text_path(path, kind)

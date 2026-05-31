@@ -35,6 +35,7 @@ class GRABAdapter(BaseDatasetAdapter):
             "gender": str(np.asarray(payload.get("gender", "")).reshape(-1)[0]),
             "object_name": str(np.asarray(payload.get("obj_name", "")).reshape(-1)[0]),
             "has_contact": "contact" in payload.files,
+            "declared_world_basis": "z_up_to_y_up",
         }
         sample = self._sample(sample_id, path, "smplx_fullpose_npz", "smplx_fullpose", fps=fps, frame_count=fullpose.shape[0], metadata=metadata)
         motion = {"fullpose": fullpose, "translation": translation, "fps": fps, "source_metadata": metadata}

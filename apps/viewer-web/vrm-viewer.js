@@ -337,6 +337,7 @@ export function createVrmViewer({ canvas, statusEl, fileInput, resetButton }) {
     motionRoot.position.set(translation[0], translation[1], translation[2]);
     motionRoot.quaternion.set(rotation[0], rotation[1], rotation[2], rotation[3]).normalize();
     state.vrm.humanoid.resetNormalizedPose?.();
+    state.vrm.humanoid.resetRawPose?.();
     const pose = poseObjectFromFrame(safeFrame);
     if (typeof state.vrm.humanoid.setNormalizedPose === "function") {
       state.vrm.humanoid.setNormalizedPose(pose);

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 import pytest
 
 from virea.data.registry import DatasetRegistry
@@ -20,8 +21,12 @@ def test_first_sample_has_raw_and_processed_preview(dataset: str) -> None:
     raw = RawPreviewPipeline(registry).preview(dataset, samples[0].sample_id, max_frames=8)
     processed = ProcessedPreviewPipeline(registry).preview(dataset, samples[0].sample_id, max_frames=8)
 
+    assert raw.stage == "raw"
+    assert processed.stage == "processed"
     assert raw.positions.ndim == 3
     assert processed.positions.ndim == 3
+    if raw.positions.shape == processed.positions.shape:
+        assert not np.allclose(raw.positions, processed.positions)
     assert raw.positions.shape[0] <= 8
     assert processed.positions.shape[0] <= 8
     assert raw.quality["status"] == "passed"

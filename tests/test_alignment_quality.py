@@ -94,9 +94,6 @@ def test_processed_preview_is_vrm_fk_not_a_raw_copy(dataset: str) -> None:
     _assert_finite_payload(processed)
     _assert_processed_is_true_vrm_fk(processed)
     assert processed.joint_names != raw.joint_names or processed.positions.shape != raw.positions.shape
-    head_delta = _mean_delta(processed, "hips", "head")
-    assert head_delta[1] > abs(head_delta[0])
-    assert head_delta[1] > abs(head_delta[2])
 
 
 def test_susu_retarget_maya_uses_safe_body_order_and_no_foot_flip() -> None:
@@ -117,6 +114,7 @@ def test_susu_retarget_maya_uses_safe_body_order_and_no_foot_flip() -> None:
     assert _max_foot_above_head(processed) < 0.05
     assert processed.metadata["root_translation"] == "absolute_xzy_zeroed_auto_units"
     assert processed.metadata["rotation_space"] == "global_6d_converted_to_parent_local_quaternions"
+    assert processed.metadata["rotation_6d_layout"] == "row_major_first_two_rows"
     hips = raw.positions[:, raw.joint_names.index("hips")]
     root_steps = np.linalg.norm(np.diff(hips, axis=0), axis=1)
     assert float(np.max(root_steps)) < 0.05
@@ -128,6 +126,59 @@ def test_susu_retarget_maya_uses_safe_body_order_and_no_foot_flip() -> None:
     right_upper_arm = raw.positions[:, names.index("rightUpperArm")] - hips
     assert float(np.median(left_hand[:, 0] - right_hand[:, 0])) > 0.25
     assert float(np.median(left_upper_arm[:, 0] - right_upper_arm[:, 0])) > 0.05
+
+
+def test_prone_and_inverted_motions_are_not_rotated_upright() -> None:
+    registry = DatasetRegistry.default(data_source="full")
+    adapter = registry.adapter("motionx")
+    if not adapter.exists():
+        pytest.skip("raw root not available for motionx")
+
+    plank_id = "motion_data/smplx_322/fitness/subset_0004/Sport_Fitness_Plank"
+    handstand_id = "motion_data/smplx_322/game_motion/subset_0010/Gymnastics_Handstand"
+    if not (adapter.raw_root / f"{plank_id}.npy").exists() or not (adapter.raw_root / f"{handstand_id}.npy").exists():
+        pytest.skip("Motion-X prone/handstand regression samples are not available")
+
+    plank = ProcessedPreviewPipeline(registry).preview("motionx", plank_id, max_frames=64)
+    names = plank.joint_names
+    head_delta = _mean_delta(plank, "hips", "head")
+    assert abs(float(head_delta[1])) < 0.12
+    assert abs(float(head_delta[2])) > 0.45
+    assert float(np.median(plank.positions[:, names.index("leftHand"), 1])) < float(np.median(plank.positions[:, names.index("hips"), 1]))
+
+    handstand = ProcessedPreviewPipeline(registry).preview("motionx", handstand_id, max_frames=64)
+    names = handstand.joint_names
+    hands_y = np.maximum(handstand.positions[:, names.index("leftHand"), 1], handstand.positions[:, names.index("rightHand"), 1])
+    feet_y = np.maximum(handstand.positions[:, names.index("leftFoot"), 1], handstand.positions[:, names.index("rightFoot"), 1])
+    assert float(np.median(hands_y)) < float(np.median(handstand.positions[:, names.index("hips"), 1]))
+    assert float(np.median(feet_y)) > float(np.median(handstand.positions[:, names.index("head"), 1]))
+
+
+def test_amass_crawl_keeps_body_horizontal_after_z_up_conversion() -> None:
+    registry = DatasetRegistry.default(data_source="full")
+    adapter = registry.adapter("amass")
+    sample_id = "ACCAD/Female1General_c3d/A11_-_crawl_forward_stageii"
+    if not (adapter.raw_root / f"{sample_id}.npz").exists():
+        pytest.skip("AMASS crawl regression sample is not available")
+
+    processed = ProcessedPreviewPipeline(registry).preview("amass", sample_id, max_frames=64)
+    head_delta = _mean_delta(processed, "hips", "head")
+    assert abs(float(head_delta[1])) < 0.18
+    assert abs(float(head_delta[0])) > 0.45
+    assert processed.metadata["declared_world_basis"] == "z_up_to_y_up"
+
+
+def test_susu_position_samples_use_declared_basis_without_left_right_flip() -> None:
+    registry = DatasetRegistry.default(data_source="full")
+    adapter = registry.adapter("susuinteracts")
+    sample_id = "fbx_to_json_data_susu_retarget_maya/20251106/Human_0916_183_0_4_01_XG"
+    if not (adapter.raw_root / "motion_data" / f"{sample_id}.npy").exists():
+        pytest.skip("SuSu retarget_maya regression sample is not available")
+
+    raw = RawPreviewPipeline(registry).preview("susuinteracts", sample_id, max_frames=8)
+    names = raw.joint_names
+    assert raw.metadata["declared_world_basis"] == "neg_z_up_to_y_up"
+    assert float(raw.positions[0, names.index("leftUpperArm"), 0] - raw.positions[0, names.index("rightUpperArm"), 0]) > 0.05
 
 
 def test_processed_target_rest_comes_from_real_vrm_control_template() -> None:

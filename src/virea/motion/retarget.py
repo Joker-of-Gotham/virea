@@ -81,6 +81,32 @@ WORLD_LEFT_RIGHT_PAIRS = (
     ("leftFoot", "rightFoot"),
 )
 
+WORLD_BASIS_MATRICES = {
+    "identity_y_up": np.eye(3, dtype=np.float32),
+    "z_up_to_y_up": np.array(
+        [
+            [1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0],
+            [0.0, -1.0, 0.0],
+        ],
+        dtype=np.float32,
+    ),
+    "neg_z_up_to_y_up": np.array(
+        [
+            [1.0, 0.0, 0.0],
+            [0.0, 0.0, -1.0],
+            [0.0, 1.0, 0.0],
+        ],
+        dtype=np.float32,
+    ),
+}
+
+WORLD_BASIS_UP_AXIS = {
+    "identity_y_up": "+y",
+    "z_up_to_y_up": "+z",
+    "neg_z_up_to_y_up": "-z",
+}
+
 
 def _rest_offset(bone_name: str, offsets: dict[str, list[float] | np.ndarray] | None = None) -> np.ndarray:
     target_offsets = target_rest_offsets_map()
@@ -133,6 +159,40 @@ def _broadcast_quat(quat: np.ndarray, frame_count: int) -> np.ndarray:
     return np.broadcast_to(np.asarray(quat, dtype=np.float32).reshape(1, 4), (frame_count, 4)).copy()
 
 
+def resolve_world_basis(world_basis: str | np.ndarray | dict[str, Any]) -> dict[str, Any]:
+    if isinstance(world_basis, str):
+        key = world_basis.strip()
+        if key not in WORLD_BASIS_MATRICES:
+            raise ValueError(f"unsupported world basis: {world_basis}")
+        matrix = WORLD_BASIS_MATRICES[key]
+        return {
+            "rotation_matrix": matrix,
+            "rotation_xyzw": _quat_from_rotation_matrix(matrix),
+            "basis": key,
+            "basis_source": "declared",
+            "detected_up_source_axis": WORLD_BASIS_UP_AXIS.get(key),
+        }
+    if isinstance(world_basis, dict):
+        if "rotation_matrix" not in world_basis:
+            raise ValueError("world basis dict must include rotation_matrix")
+        matrix = np.asarray(world_basis["rotation_matrix"], dtype=np.float32)
+        return {
+            **world_basis,
+            "rotation_matrix": matrix,
+            "rotation_xyzw": np.asarray(world_basis.get("rotation_xyzw", _quat_from_rotation_matrix(matrix)), dtype=np.float32),
+            "basis_source": world_basis.get("basis_source", "declared"),
+        }
+    matrix = np.asarray(world_basis, dtype=np.float32)
+    if matrix.shape != (3, 3):
+        raise ValueError(f"world basis matrix must have shape (3, 3), got {matrix.shape}")
+    return {
+        "rotation_matrix": matrix,
+        "rotation_xyzw": _quat_from_rotation_matrix(matrix),
+        "basis": "custom_matrix",
+        "basis_source": "declared",
+    }
+
+
 def retarget_named_quats_to_vrm(
     root_translation: np.ndarray,
     root_rotation_xyzw: np.ndarray,
@@ -141,6 +201,7 @@ def retarget_named_quats_to_vrm(
     hand_quats_by_name: dict[str, np.ndarray] | None = None,
     source_hand_rest_offsets: dict[str, list[float] | np.ndarray] | None = None,
     normalize_world: bool = True,
+    world_basis: str | np.ndarray | dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     frame_count = int(np.asarray(root_translation).shape[0])
     scale = _target_scale_from_rest_offsets(source_body_rest_offsets)
@@ -157,7 +218,7 @@ def retarget_named_quats_to_vrm(
     )
     basis: dict[str, Any] | None = None
     if normalize_world:
-        basis = infer_clip_world_basis(source_positions)
+        basis = resolve_world_basis(world_basis) if world_basis is not None else infer_clip_world_basis(source_positions)
         basis_matrix = basis["rotation_matrix"]
         basis_quat = basis["rotation_xyzw"]
         target_root_translation = rotate_positions_by_matrix(target_root_translation[:, None, :], basis_matrix)[:, 0]
@@ -311,11 +372,15 @@ def rotate_positions_by_matrix(positions: np.ndarray, rotation_matrix: np.ndarra
     return np.einsum("ij,...j->...i", np.asarray(rotation_matrix, dtype=np.float32), np.asarray(positions, dtype=np.float32)).astype(np.float32)
 
 
-def fit_positions_to_vrm(body_positions: np.ndarray, normalize_world: bool = True) -> dict[str, Any]:
+def fit_positions_to_vrm(
+    body_positions: np.ndarray,
+    normalize_world: bool = True,
+    world_basis: str | np.ndarray | dict[str, Any] | None = None,
+) -> dict[str, Any]:
     source_positions = np.asarray(body_positions, dtype=np.float32)
     basis: dict[str, Any] | None = None
     if normalize_world and source_positions.shape[1] >= len(BODY_BONES):
-        basis = infer_clip_world_basis(source_positions)
+        basis = resolve_world_basis(world_basis) if world_basis is not None else infer_clip_world_basis(source_positions)
         working = rotate_positions_by_matrix(source_positions, basis["rotation_matrix"])
     else:
         working = source_positions.copy()
@@ -330,6 +395,14 @@ def fit_positions_to_vrm(body_positions: np.ndarray, normalize_world: bool = Tru
 
     frame_count = centered.shape[0]
     root_rotation = identity_quats(frame_count, 1)[:, 0]
+    target_spine_offset = _rest_offset("spine")
+    if "spine" in BODY_INDEX and np.linalg.norm(target_spine_offset) >= 1e-6:
+        for frame_idx in range(frame_count):
+            desired_spine_dir = centered[frame_idx, BODY_INDEX["spine"]] - centered[frame_idx, BODY_INDEX["hips"]]
+            if np.linalg.norm(desired_spine_dir) < 1e-6:
+                continue
+            root_rotation[frame_idx] = quat_from_two_vectors_xyzw(target_spine_offset, desired_spine_dir)
+    root_rotation = normalize_quat_xyzw(root_rotation)
     core = identity_quats(frame_count, len(CORE_BONES))
     world_rotations: dict[str, np.ndarray] = {"hips": root_rotation}
     for bone_name in CORE_BONES:

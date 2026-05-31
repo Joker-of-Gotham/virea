@@ -11,12 +11,16 @@ from virea.motion.skeleton import BODY_EDGES
 
 
 class AMASSAdapter(BaseDatasetAdapter):
+    _SKIP_STEMS = {"female_stagei", "male_stagei", "shape", "marker"}
+
     def discover(self, limit: int = 50, query: str = "") -> list[SampleRef]:
         if not self.raw_root.exists():
             return []
         samples: list[SampleRef] = []
         for path in sorted(self.raw_root.rglob("*.npz")):
             if "LICENSE" in path.name.upper():
+                continue
+            if path.stem.lower() in self._SKIP_STEMS:
                 continue
             sample_id = self._rel_id(path)
             if not self._matches(sample_id, query):

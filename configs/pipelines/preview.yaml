@@ -1,11 +1,28 @@
 pipeline:
-  schema_version: virea.preview_pipeline.v0.1.0
+  schema_version: virea.preview_pipeline.v0.2.0
   target_fps: 30
   max_preview_frames: 180
   persist_processed_by_default: false
+  default_workers: 0
+  skip_existing_by_default: true
 
 stages:
-  raw_preview:
-    description: Inspect the source-native motion before conversion.
-  processed_preview:
-    description: Convert source-native data to VIREA canonical and VRM preview payloads.
+  discover:
+    description: List samples from dataset adapters.
+  load:
+    description: Read raw clips from disk.
+  extract_source:
+    description: Lightweight source-space FK snapshot (no VRM retarget).
+  convert_canonical:
+    description: Codec conversion to canonical sequence and VRM FK positions.
+  persist:
+    description: Write source_snapshot, canonical_motion, vrm_positions, quality, metadata.
+  preview_read:
+    description: Viewer reads persisted artifacts only; no processing in presentation layer.
+
+artifacts:
+  source_snapshot: source/{version}/snapshot/{dataset}/{uid}.npz
+  canonical_motion: canonical/{version}/motion/{dataset}/{uid}.npz
+  vrm_positions: vrm/{version}/positions/{dataset}/{uid}.npz
+  quality_report: vrm/{version}/quality/{dataset}/{uid}.json
+  metadata: canonical/{version}/metadata/{dataset}/{uid}.json

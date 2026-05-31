@@ -10,6 +10,8 @@ const state = {
   frame: 0,
   playing: false,
   playbackTimer: null,
+  playbackStartMs: 0,
+  playbackStartFrame: 0,
   showHands: false,
   showTrails: true,
   viewYaw: 0,
@@ -36,16 +38,75 @@ async function api(path, options) {
   return response.json();
 }
 
+function formatErrorTable(quality) {
+  if (!quality) return "";
+  const lines = [];
+  lines.push(`Status: ${quality.status || "unknown"} | Frames: ${quality.frame_count} | Joints: ${quality.joint_count}`);
+  lines.push(`BBox: [${(quality.bbox_min || []).map((v) => v.toFixed(3)).join(", ")}] → [${(quality.bbox_max || []).map((v) => v.toFixed(3)).join(", ")}]`);
+
+  if (quality.ground_contact) {
+    const gc = quality.ground_contact;
+    lines.push(`\nGround Contact:`);
+    lines.push(`  Floating: ${gc.floating_frames}/${gc.total_frames} (${(gc.floating_ratio * 100).toFixed(1)}%)`);
+    lines.push(`  Penetrating: ${gc.penetrating_frames}/${gc.total_frames} (${(gc.penetrating_ratio * 100).toFixed(1)}%)`);
+    lines.push(`  Foot height range: [${gc.min_foot_height_m?.toFixed(4)}m, ${gc.max_foot_height_m?.toFixed(4)}m]`);
+  }
+
+  if (quality.velocity) {
+    const v = quality.velocity;
+    lines.push(`\nVelocity:`);
+    lines.push(`  Mean: ${v.mean_speed_m_s?.toFixed(3)} m/s | Max: ${v.max_speed_m_s?.toFixed(3)} m/s`);
+    lines.push(`  Jittery joints: ${v.jittery_joints} (threshold: ${v.jitter_threshold_m_s} m/s)`);
+  }
+
+  if (quality.retarget_error) {
+    const re = quality.retarget_error;
+    if (re.status === "shape_mismatch") {
+      lines.push(`\nRetarget Error: shape mismatch ${JSON.stringify(re.source_shape)} vs ${JSON.stringify(re.target_shape)}`);
+    } else {
+      lines.push(`\nRetarget Error (source → target):`);
+      lines.push(`  Overall: mean=${re.overall_mean_m?.toFixed(5)}m  max=${re.overall_max_m?.toFixed(5)}m  std=${re.overall_std_m?.toFixed(5)}m`);
+      lines.push(`  Worst: frame=${re.worst_frame}  joint="${re.worst_joint_name}"`);
+    }
+  }
+
+  if (quality.per_joint_errors && quality.per_joint_errors.length > 0) {
+    lines.push(`\nPer-Joint Errors (sorted by max):`);
+    lines.push(`  ${"Joint".padEnd(22)} ${"Mean(m)".padStart(9)} ${"Max(m)".padStart(9)} ${"Std(m)".padStart(9)} ${"Frame".padStart(6)}`);
+    lines.push(`  ${"─".repeat(58)}`);
+    const top = quality.per_joint_errors.slice(0, 15);
+    for (const je of top) {
+      lines.push(
+        `  ${je.joint.padEnd(22)} ${je.mean_error_m.toFixed(5).padStart(9)} ${je.max_error_m.toFixed(5).padStart(9)} ${je.std_error_m.toFixed(5).padStart(9)} ${String(je.worst_frame).padStart(6)}`,
+      );
+    }
+    if (quality.per_joint_errors.length > 15) {
+      lines.push(`  ... ${quality.per_joint_errors.length - 15} more joints`);
+    }
+  }
+
+  if (quality.symmetry && quality.symmetry.details?.length > 0) {
+    lines.push(`\nSymmetry (max asymmetry: ${(quality.symmetry.max_asymmetry * 100).toFixed(1)}%):`);
+    for (const s of quality.symmetry.details) {
+      lines.push(`  ${s.pair}: ${(s.asymmetry_ratio * 100).toFixed(1)}%`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
 function metaSummary(payload) {
   if (!payload) return "";
+  const q = payload.quality;
+  if (q && (q.per_joint_errors || q.retarget_error || q.ground_contact)) {
+    return formatErrorTable(q);
+  }
   return JSON.stringify(
     {
       fps: payload.fps,
       frames: payload.frame_count,
       joints: payload.skeleton?.joint_names?.length,
-      quality: payload.quality,
-      files: payload.files,
-      metadata: payload.metadata,
+      quality: q,
     },
     null,
     2,
@@ -282,23 +343,51 @@ function renderPreview() {
   vrmViewer?.setFrame?.(state.frame);
 }
 
-async function loadPreview(sample, persist = false) {
+function previewParams(sample, fromArtifacts = true) {
   const params = new URLSearchParams({
     data_source: $("dataSourceSelect").value,
     dataset: $("datasetSelect").value,
     sample_id: sample.sample_id,
+    from_artifacts: fromArtifacts ? "true" : "false",
   });
   const maxFrames = $("maxFramesInput").value.trim();
   if (maxFrames) params.set("max_frames", maxFrames);
+  return params;
+}
 
-  const rawParams = new URLSearchParams(params);
-  rawParams.set("stage", "raw");
-  const processedParams = new URLSearchParams(params);
-  processedParams.set("stage", "processed");
-  processedParams.set("persist", persist ? "true" : "false");
-  [state.raw, state.processed] = await Promise.all([api(`/api/preview?${rawParams.toString()}`), api(`/api/preview?${processedParams.toString()}`)]);
+async function loadPreview(sample, persist = false) {
+  if (persist) {
+    const maxFrames = $("maxFramesInput").value.trim();
+    await api("/api/process", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        data_source: $("dataSourceSelect").value,
+        dataset: $("datasetSelect").value,
+        sample_id: sample.sample_id,
+        max_frames: maxFrames ? Number(maxFrames) : null,
+        persist: true,
+        skip_existing: false,
+      }),
+    });
+  }
+
+  const params = previewParams(sample, true);
+  [state.raw, state.processed] = await Promise.all([
+    api(`/api/preview/source?${params.toString()}`),
+    api(`/api/preview/processed?${params.toString()}`),
+  ]);
   state.frame = 0;
-  vrmViewer?.setMotionPayload?.(state.processed);
+  if (state.processed?.motion) {
+    vrmViewer?.setMotionPayload?.(state.processed);
+  } else {
+    try {
+      const motion = await api(`/api/preview/motion?${params.toString()}`);
+      vrmViewer?.setMotionPayload?.({ ...state.processed, motion });
+    } catch {
+      vrmViewer?.setMotionPayload?.(state.processed);
+    }
+  }
   renderPreview();
 }
 
@@ -340,7 +429,7 @@ async function loadSamples() {
 
 function stopPlayback() {
   if (state.playbackTimer) {
-    clearInterval(state.playbackTimer);
+    cancelAnimationFrame(state.playbackTimer);
     state.playbackTimer = null;
   }
   state.playing = false;
@@ -348,17 +437,30 @@ function stopPlayback() {
   $("modelPlayButton").textContent = "Play";
 }
 
+function playbackFps() {
+  const candidates = [state.processed?.fps, state.raw?.fps]
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  return candidates[0] || 30;
+}
+
 function startPlayback() {
   if (state.playbackTimer) return;
   state.playing = true;
   $("playButton").textContent = "Pause";
   $("modelPlayButton").textContent = "Pause";
-  state.playbackTimer = setInterval(() => {
+  state.playbackStartMs = performance.now();
+  state.playbackStartFrame = Math.floor(state.frame);
+  const tick = (now) => {
     const maxFrames = Math.max(state.raw?.frame_count || 0, state.processed?.frame_count || 0);
-    if (!maxFrames) return;
-    state.frame = (state.frame + 1) % maxFrames;
-    renderPreview();
-  }, 90);
+    if (maxFrames) {
+      const elapsedSec = Math.max(0, (now - state.playbackStartMs) / 1000);
+      state.frame = Math.floor(state.playbackStartFrame + elapsedSec * playbackFps()) % maxFrames;
+      renderPreview();
+    }
+    state.playbackTimer = requestAnimationFrame(tick);
+  };
+  state.playbackTimer = requestAnimationFrame(tick);
 }
 
 function togglePlayback() {
@@ -426,13 +528,18 @@ async function init() {
   const health = await api("/api/health");
   state.dataSources = health.available_data_sources || {};
   $("dataSourceSelect").innerHTML = Object.entries(state.dataSources)
-    .map(([key, value]) => `<option value="${key}">${key} - ${value.label || key}</option>`)
+    .map(([key, value]) => {
+      const mark = value.exists ? "✓" : "✗";
+      const shortPath = (value.raw_root || "").split(/[/\\]/).slice(-3).join("/");
+      return `<option value="${key}" title="${value.raw_root || ''}">${mark} ${key} — ${value.label || key} [${shortPath}]</option>`;
+    })
     .join("");
   const defaultSource = health.default_data_source;
   const firstExistingSource = Object.keys(state.dataSources).find((key) => state.dataSources[key].exists);
   $("dataSourceSelect").value =
     (defaultSource && state.dataSources[defaultSource]?.exists && defaultSource) || firstExistingSource || "full";
-  $("health").textContent = `source: ${$("dataSourceSelect").value}`;
+  const activeSource = state.dataSources[$("dataSourceSelect").value];
+  $("health").textContent = `${$("dataSourceSelect").value}: ${activeSource?.raw_root || "?"}`;
   const datasets = await api(`/api/datasets?data_source=${encodeURIComponent($("dataSourceSelect").value)}`);
   state.datasets = datasets.datasets || [];
   $("datasetSelect").innerHTML = state.datasets.map((dataset) => `<option value="${dataset.key}">${dataset.name}</option>`).join("");
@@ -446,13 +553,46 @@ async function init() {
   applyTheme(localStorage.getItem(THEME_KEY) || "light");
   attachPreviewViewControls($("rawCanvas"));
   attachPreviewViewControls($("processedCanvas"));
+  window.__vireaShowcase = {
+    async loadSample({ dataSource = "demo", dataset, sampleId, maxFrames = "" }) {
+      stopPlayback();
+      if (dataSource && $("dataSourceSelect").value !== dataSource) {
+        $("dataSourceSelect").value = dataSource;
+        const info = state.dataSources[dataSource];
+        $("health").textContent = `${dataSource}: ${info?.raw_root || "?"}`;
+        const datasets = await api(`/api/datasets?data_source=${encodeURIComponent(dataSource)}`);
+        state.datasets = datasets.datasets || [];
+        $("datasetSelect").innerHTML = state.datasets.map((item) => `<option value="${item.key}">${item.name}</option>`).join("");
+      }
+      if (dataset) $("datasetSelect").value = dataset;
+      $("maxFramesInput").value = maxFrames ? String(maxFrames) : "";
+      state.selected = { sample_id: sampleId };
+      state.samples = [state.selected];
+      $("sampleTitle").textContent = sampleId;
+      $("sampleText").textContent = "";
+      renderSamples();
+      await loadPreview(state.selected, false);
+      return {
+        dataset: $("datasetSelect").value,
+        sampleId,
+        frames: Math.max(state.raw?.frame_count || 0, state.processed?.frame_count || 0),
+      };
+    },
+    setFrame(frame) {
+      stopPlayback();
+      state.frame = Math.max(0, Number(frame) || 0);
+      renderPreview();
+    },
+  };
   await loadSamples();
 }
 
 $("searchButton").addEventListener("click", loadSamples);
 $("datasetSelect").addEventListener("change", loadSamples);
 $("dataSourceSelect").addEventListener("change", async () => {
-  $("health").textContent = `source: ${$("dataSourceSelect").value}`;
+  const src = $("dataSourceSelect").value;
+  const info = state.dataSources[src];
+  $("health").textContent = `${src}: ${info?.raw_root || "?"}`;
   stopPlayback();
   await loadSamples();
 });

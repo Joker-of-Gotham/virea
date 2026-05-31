@@ -66,7 +66,10 @@ class BABELAdapter(BaseDatasetAdapter):
                 )
                 if len(samples) >= limit:
                     return samples
+        _skip_stems = {"female_stagei", "male_stagei", "shape", "marker"}
         for path in sorted(self.raw_root.rglob("*.npz")):
+            if path.stem.lower() in _skip_stems:
+                continue
             sample_id = self._rel_id(path)
             if not self._matches(sample_id, query):
                 continue
