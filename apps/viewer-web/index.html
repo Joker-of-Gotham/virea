@@ -101,6 +101,53 @@
               <pre id="processedMeta"></pre>
             </article>
           </div>
+
+          <section class="quality-panel" id="qualityPanel" style="display:none">
+            <header class="quality-header">
+              <div class="panel-title">Quality Dashboard</div>
+              <h3 id="qualityTitle">Retarget Quality Metrics</h3>
+            </header>
+
+            <div class="quality-grid">
+              <div class="quality-card quality-card--hero" id="qualityOverview">
+                <div class="quality-card-title">Retarget Direction Error</div>
+                <div class="quality-hero-value" id="qualityHeroValue">--</div>
+                <div class="quality-hero-sub" id="qualityHeroSub"></div>
+              </div>
+              <div class="quality-card" id="qualityGroundContact">
+                <div class="quality-card-title">Ground Contact</div>
+                <div class="quality-card-body" id="qualityGcBody">--</div>
+              </div>
+              <div class="quality-card" id="qualityVelocity">
+                <div class="quality-card-title">Velocity</div>
+                <div class="quality-card-body" id="qualityVelBody">--</div>
+              </div>
+              <div class="quality-card" id="qualitySymmetry">
+                <div class="quality-card-title">Symmetry</div>
+                <div class="quality-card-body" id="qualitySymBody">--</div>
+              </div>
+            </div>
+
+            <div class="quality-bones">
+              <div class="quality-card-title">Per-Bone Direction Error</div>
+              <div class="quality-bone-chart" id="qualityBoneChart"></div>
+            </div>
+
+            <div class="quality-table-wrap">
+              <table class="quality-table" id="qualityBoneTable">
+                <thead>
+                  <tr>
+                    <th>Bone</th>
+                    <th>Mean (deg)</th>
+                    <th>Max (deg)</th>
+                    <th>Std (rad)</th>
+                    <th>Worst Frame</th>
+                  </tr>
+                </thead>
+                <tbody id="qualityBoneTableBody"></tbody>
+              </table>
+            </div>
+          </section>
         </section>
 
       </section>

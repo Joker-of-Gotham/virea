@@ -41,58 +41,103 @@ async function api(path, options) {
 function formatErrorTable(quality) {
   if (!quality) return "";
   const lines = [];
-  lines.push(`Status: ${quality.status || "unknown"} | Frames: ${quality.frame_count} | Joints: ${quality.joint_count}`);
-  lines.push(`BBox: [${(quality.bbox_min || []).map((v) => v.toFixed(3)).join(", ")}] → [${(quality.bbox_max || []).map((v) => v.toFixed(3)).join(", ")}]`);
+  lines.push(`Frames: ${quality.frame_count} | Joints: ${quality.joint_count}`);
+  if (quality.retarget_direction_error) {
+    const re = quality.retarget_direction_error;
+    lines.push(`Direction Error: mean=${re.overall_mean_deg?.toFixed(4)}° max=${re.overall_max_deg?.toFixed(4)}° (${re.max_as_pct_of_full_rotation?.toFixed(4)}%)`);
+  }
+  return lines.join("\n");
+}
 
+function renderQualityPanel(quality) {
+  const panel = $("qualityPanel");
+  if (!quality || (!quality.retarget_direction_error && !quality.ground_contact)) {
+    panel.style.display = "none";
+    return;
+  }
+  panel.style.display = "";
+
+  const rde = quality.retarget_direction_error;
+  const heroEl = $("qualityHeroValue");
+  const heroSub = $("qualityHeroSub");
+
+  if (rde) {
+    const maxDeg = rde.overall_max_deg ?? 0;
+    const pct = rde.max_as_pct_of_full_rotation ?? 0;
+    heroEl.textContent = `${maxDeg.toFixed(4)}°`;
+    heroEl.className = "quality-hero-value" + (pct > 1 ? " bad" : pct > 0.1 ? " warn" : "");
+    heroSub.textContent = `Mean: ${(rde.overall_mean_deg ?? 0).toFixed(4)}° | ${pct.toFixed(4)}% of full rotation | ${rde.bones_evaluated ?? 0} bones`;
+  } else {
+    heroEl.textContent = "N/A";
+    heroEl.className = "quality-hero-value";
+    heroSub.textContent = "";
+  }
+
+  const gcBody = $("qualityGcBody");
   if (quality.ground_contact) {
     const gc = quality.ground_contact;
-    lines.push(`\nGround Contact:`);
-    lines.push(`  Floating: ${gc.floating_frames}/${gc.total_frames} (${(gc.floating_ratio * 100).toFixed(1)}%)`);
-    lines.push(`  Penetrating: ${gc.penetrating_frames}/${gc.total_frames} (${(gc.penetrating_ratio * 100).toFixed(1)}%)`);
-    lines.push(`  Foot height range: [${gc.min_foot_height_m?.toFixed(4)}m, ${gc.max_foot_height_m?.toFixed(4)}m]`);
+    gcBody.innerHTML = `
+      <div class="stat-row"><span class="stat-label">Floating</span><span class="stat-value">${(gc.floating_ratio * 100).toFixed(1)}%</span></div>
+      <div class="stat-row"><span class="stat-label">Penetrating</span><span class="stat-value">${(gc.penetrating_ratio * 100).toFixed(1)}%</span></div>
+      <div class="stat-row"><span class="stat-label">Foot range</span><span class="stat-value">${gc.min_foot_height_m?.toFixed(3)}m ~ ${gc.max_foot_height_m?.toFixed(3)}m</span></div>
+    `;
+  } else {
+    gcBody.textContent = "--";
   }
 
+  const velBody = $("qualityVelBody");
   if (quality.velocity) {
     const v = quality.velocity;
-    lines.push(`\nVelocity:`);
-    lines.push(`  Mean: ${v.mean_speed_m_s?.toFixed(3)} m/s | Max: ${v.max_speed_m_s?.toFixed(3)} m/s`);
-    lines.push(`  Jittery joints: ${v.jittery_joints} (threshold: ${v.jitter_threshold_m_s} m/s)`);
+    velBody.innerHTML = `
+      <div class="stat-row"><span class="stat-label">Mean speed</span><span class="stat-value">${v.mean_speed_m_s?.toFixed(3)} m/s</span></div>
+      <div class="stat-row"><span class="stat-label">Max speed</span><span class="stat-value">${v.max_speed_m_s?.toFixed(3)} m/s</span></div>
+      <div class="stat-row"><span class="stat-label">Jittery joints</span><span class="stat-value">${v.jittery_joints ?? 0}</span></div>
+    `;
+  } else {
+    velBody.textContent = "--";
   }
 
-  if (quality.retarget_error) {
-    const re = quality.retarget_error;
-    if (re.status === "shape_mismatch") {
-      lines.push(`\nRetarget Error: shape mismatch ${JSON.stringify(re.source_shape)} vs ${JSON.stringify(re.target_shape)}`);
-    } else {
-      lines.push(`\nRetarget Error (source → target):`);
-      lines.push(`  Overall: mean=${re.overall_mean_m?.toFixed(5)}m  max=${re.overall_max_m?.toFixed(5)}m  std=${re.overall_std_m?.toFixed(5)}m`);
-      lines.push(`  Worst: frame=${re.worst_frame}  joint="${re.worst_joint_name}"`);
-    }
+  const symBody = $("qualitySymBody");
+  if (quality.symmetry) {
+    const s = quality.symmetry;
+    const pairs = (s.details || []).map((d) => `<div class="stat-row"><span class="stat-label">${d.pair.replace(" / ", "/")}</span><span class="stat-value">${(d.asymmetry_ratio * 100).toFixed(1)}%</span></div>`);
+    symBody.innerHTML = `
+      <div class="stat-row"><span class="stat-label">Max asymmetry</span><span class="stat-value">${(s.max_asymmetry * 100).toFixed(1)}%</span></div>
+      ${pairs.join("")}
+    `;
+  } else {
+    symBody.textContent = "--";
   }
 
-  if (quality.per_joint_errors && quality.per_joint_errors.length > 0) {
-    lines.push(`\nPer-Joint Errors (sorted by max):`);
-    lines.push(`  ${"Joint".padEnd(22)} ${"Mean(m)".padStart(9)} ${"Max(m)".padStart(9)} ${"Std(m)".padStart(9)} ${"Frame".padStart(6)}`);
-    lines.push(`  ${"─".repeat(58)}`);
-    const top = quality.per_joint_errors.slice(0, 15);
-    for (const je of top) {
-      lines.push(
-        `  ${je.joint.padEnd(22)} ${je.mean_error_m.toFixed(5).padStart(9)} ${je.max_error_m.toFixed(5).padStart(9)} ${je.std_error_m.toFixed(5).padStart(9)} ${String(je.worst_frame).padStart(6)}`,
-      );
-    }
-    if (quality.per_joint_errors.length > 15) {
-      lines.push(`  ... ${quality.per_joint_errors.length - 15} more joints`);
-    }
-  }
+  const bones = quality.per_bone_direction_errors || [];
+  const chartEl = $("qualityBoneChart");
+  const tableBody = $("qualityBoneTableBody");
 
-  if (quality.symmetry && quality.symmetry.details?.length > 0) {
-    lines.push(`\nSymmetry (max asymmetry: ${(quality.symmetry.max_asymmetry * 100).toFixed(1)}%):`);
-    for (const s of quality.symmetry.details) {
-      lines.push(`  ${s.pair}: ${(s.asymmetry_ratio * 100).toFixed(1)}%`);
-    }
-  }
+  if (bones.length > 0) {
+    const maxVal = Math.max(...bones.map((b) => b.max_deg || 0), 0.001);
+    chartEl.innerHTML = bones
+      .map((b) => {
+        const pct = Math.max(((b.max_deg || 0) / maxVal) * 100, 2);
+        return `<div class="quality-bone-bar" style="height:${pct}%" data-tooltip="${b.bone}: ${b.max_deg?.toFixed(4)}°"></div>`;
+      })
+      .join("");
 
-  return lines.join("\n");
+    tableBody.innerHTML = bones
+      .map((b) => {
+        const barW = Math.max(((b.max_deg || 0) / maxVal) * 60, 0);
+        return `<tr>
+          <td>${b.bone}</td>
+          <td><span class="cell-bar" style="width:${barW}px"></span>${b.mean_deg?.toFixed(4)}</td>
+          <td><span class="cell-bar" style="width:${barW}px"></span>${b.max_deg?.toFixed(4)}</td>
+          <td>${b.std_rad?.toFixed(6)}</td>
+          <td>${b.worst_frame}</td>
+        </tr>`;
+      })
+      .join("");
+  } else {
+    chartEl.innerHTML = '<span style="color:var(--muted);font-size:0.8rem">No bone direction data</span>';
+    tableBody.innerHTML = "";
+  }
 }
 
 function metaSummary(payload) {
@@ -341,6 +386,7 @@ function renderPreview() {
   drawSkeleton($("rawCanvas"), state.raw, shared);
   drawSkeleton($("processedCanvas"), state.processed, shared);
   vrmViewer?.setFrame?.(state.frame);
+  renderQualityPanel(state.processed?.quality);
 }
 
 function previewParams(sample, fromArtifacts = true) {
