@@ -61,7 +61,7 @@ $$
 核心函数：
 
 $$
-retarget\_named\_quats\_to\_vrm
+retargetNamedQuatsToVrm
 $$
 
 数学步骤：
@@ -96,7 +96,7 @@ $$
 核心函数：
 
 $$
-fit\_positions\_to\_vrm
+fitPositionsToVrm
 $$
 
 数学步骤：
@@ -163,20 +163,20 @@ $$
 GRAB 与 Motion-X 放在同一篇 SMPL-X 文档，但 profile 分开，因为：
 
 $$
-B_{\mathrm{GRAB}}=\mathrm{z\_up\_to\_y\_up},\qquad
-B_{\mathrm{MotionX}}=\mathrm{identity\_y\_up}
+B_{\mathrm{GRAB}}=\mathrm{ZUpToYUp},\qquad
+B_{\mathrm{MotionX}}=\mathrm{IdentityYUp}
 $$
 
 BEAT 单独写，是因为虽然它进入同一个 `AxisAngleBody22Codec` 类，但配置是：
 
 $$
-\mathrm{world\_basis}_{\mathrm{BEAT}}=\mathrm{identity\_y\_up}
+\mathrm{WorldBasis}_{\mathrm{BEAT}}=\mathrm{IdentityYUp}
 $$
 
 而不是 AMASS/BABEL 的：
 
 $$
-\mathrm{world\_basis}_{\mathrm{AMASS}}=\mathrm{z\_up\_to\_y\_up}
+\mathrm{WorldBasis}_{\mathrm{AMASS}}=\mathrm{ZUpToYUp}
 $$
 
 SuSu 单独写，是因为当前代码存在 profile、root axes、单位自动判定、6D rows 重建、global-to-local 中间计算和 position fitting 最终输出的多层逻辑。

@@ -271,7 +271,7 @@ $$
 `resolve_world_basis()` 把 source world basis 转成目标 glTF/VRM basis。目标约定为 $+Y$ up、$+Z$ forward、meter。显式矩阵有三种：
 
 $$
-B_{\mathrm{identity\_y\_up}}=
+B_{\mathrm{IdentityYUp}}=
 \begin{bmatrix}
 1&0&0\\
 0&1&0\\
@@ -280,7 +280,7 @@ B_{\mathrm{identity\_y\_up}}=
 $$
 
 $$
-B_{\mathrm{z\_up\_to\_y\_up}}=
+B_{\mathrm{ZUpToYUp}}=
 \begin{bmatrix}
 1&0&0\\
 0&0&1\\
@@ -289,7 +289,7 @@ B_{\mathrm{z\_up\_to\_y\_up}}=
 $$
 
 $$
-B_{\mathrm{neg\_z\_up\_to\_y\_up}}=
+B_{\mathrm{NegZUpToYUp}}=
 \begin{bmatrix}
 1&0&0\\
 0&0&-1\\
@@ -474,7 +474,7 @@ $$
 函数返回的 mode 固定为：
 
 $$
-\mathrm{mode}=\mathrm{direct\_local\_quaternion\_retarget}
+\mathrm{mode}=\mathrm{DirectLocalQuaternionRetarget}
 $$
 
 ## 12. position fitting retarget
@@ -482,7 +482,7 @@ $$
 `fit_positions_to_vrm()` 用于 HumanML3D、SuSu positions 以及 SuSu global-rotation 先构造出的 positions。输入是按 `BODY_BONES` 对齐的：
 
 $$
-X\in\mathbb{R}^{T\times N_B\times3},\qquad B=\mathrm{BODY\_BONES},\quad N_B=22
+X\in\mathbb{R}^{T\times N_B\times3},\qquad B=B_{\mathrm{body}},\quad N_B=22
 $$
 
 第一步 basis：
@@ -560,7 +560,7 @@ $$
 返回 mode：
 
 $$
-\mathrm{mode}=\mathrm{position\_fit\_to\_vrm}
+\mathrm{mode}=\mathrm{PositionFitToVrm}
 $$
 
 这条路径没有求解 twist，因为单 child direction 对绕骨骼轴的旋转不可观测。代码选择的是确定性方向拟合，而不是 IK 优化。

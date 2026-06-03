@@ -30,8 +30,8 @@ fps 读取为：
 $$
 f=
 \begin{cases}
-\mathrm{mocap\_framerate},&\mathrm{if\ present}\\
-\mathrm{mocap\_frame\_rate},&\mathrm{if\ present}\\
+\mathrm{MocapFramerate},&\mathrm{if\ present}\\
+\mathrm{MocapFrameRate},&\mathrm{if\ present}\\
 60,&\mathrm{otherwise}
 \end{cases}
 $$
@@ -41,8 +41,8 @@ BABEL 如果 sample id 来自 `babel-teach/{split}/{key}`，先通过 `feat_p` �
 $$
 \mathrm{path}=
 \begin{cases}
-\mathrm{raw\_root}/\mathrm{feat\_p},&\mathrm{exists}\\
-\mathrm{raw\_root.parent}/\mathrm{amass}/\mathrm{feat\_p},&\mathrm{fallback}
+\mathrm{RawRoot}/\mathrm{FeatP},&\mathrm{exists}\\
+\mathrm{RawRoot.parent}/\mathrm{amass}/\mathrm{FeatP},&\mathrm{fallback}
 \end{cases}
 $$
 
@@ -130,28 +130,28 @@ $$
 root rotation：
 
 $$
-q_t^{\mathrm{root,src}}=Q^{\mathrm{body}}_{t,\mathrm{BODY\_INDEX}(\mathrm{hips})}
+q_t^{\mathrm{root,src}}=Q^{\mathrm{body}}(t,I_B(\mathrm{hips}))
 $$
 
 非 root 局部旋转：
 
 $$
 q_t^{j,\mathrm{src}}=
-Q^{\mathrm{body}}_{t,\mathrm{BODY\_INDEX}(j)},\qquad j\in B\setminus\{\mathrm{hips}\}
+Q^{\mathrm{body}}(t,I_B(j)),\qquad j\in B\setminus\{\mathrm{hips}\}
 $$
 
-这些值被传入 `local_quats_by_name`。
+其中 $I_B$ 表示代码中的 `BODY_INDEX`。这些值被传入 `local_quats_by_name`。
 
 ## 5. source profile 与 basis
 
 AMASS/BABEL 进入默认 `AxisAngleBody22Codec()`：
 
 $$
-\mathrm{source\_profile}=\mathrm{smplh\_body22}
+\mathrm{SourceProfile}=\mathrm{SmplhBody22}
 $$
 
 $$
-\mathrm{world\_basis}=\mathrm{z\_up\_to\_y\_up}
+\mathrm{WorldBasis}=\mathrm{ZUpToYUp}
 $$
 
 source rest offsets 在当前构造中是 `DEFAULT_REST_OFFSETS`，记作 $o_j^{\mathrm{src}}$。target rest offsets 为 $\bar{o}_j$，可能来自 VRM rest inspection，也可能是默认模板。
@@ -196,15 +196,15 @@ $$
 这对应代码：
 
 $$
-\mathrm{target\_root\_translation = root\_translation * scale}
+\mathrm{TargetRootTranslation = rootTranslation * scale}
 $$
 
 $$
-\mathrm{target\_root\_translation -= target\_root\_translation[:1]}
+\mathrm{TargetRootTranslation -= targetRootTranslation[:1]}
 $$
 
 $$
-\mathrm{target\_root\_translation = rotate\_positions\_by\_matrix(..., B)}
+\mathrm{TargetRootTranslation = rotatePositionsByMatrix(..., B)}
 $$
 
 ## 7. source FK 与 basis 后 source positions
@@ -303,7 +303,7 @@ $$
 这就是代码中：
 
 $$
-\mathrm{mapped = inverse(parent\_correction) * mapped}
+\mathrm{mapped = inverse(parentCorrection) * mapped}
 $$
 
 和：
@@ -347,15 +347,15 @@ $$
 `CanonicalResult` 中：
 
 $$
-\mathrm{retarget\_mode}=\mathrm{direct\_local\_quaternion\_retarget}
+\mathrm{RetargetMode}=\mathrm{DirectLocalQuaternionRetarget}
 $$
 
 $$
-\mathrm{retarget\_scale}=\lambda
+\mathrm{RetargetScale}=\lambda
 $$
 
 $$
-\mathrm{declared\_world\_basis}=\mathrm{z\_up\_to\_y\_up}
+\mathrm{DeclaredWorldBasis}=\mathrm{ZUpToYUp}
 $$
 
 ## 12. source preview 的数学
@@ -396,8 +396,7 @@ $$
 并设置：
 
 $$
-\mathrm{codec\_key}=\mathrm{position\_sequence},\qquad f=20
+\mathrm{CodecKey}=\mathrm{PositionSequence},\qquad f=20
 $$
 
 它走 [HumanML3D/position fitting](humanml3d-263d-to-vrm.zh-CN.md) 中描述的 `PositionSequenceCodec` 逻辑，而不是本文的 axis-angle 逻辑。
-

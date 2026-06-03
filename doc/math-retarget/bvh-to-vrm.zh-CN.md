@@ -43,13 +43,13 @@ $$
 读取路径：
 
 $$
-\mathrm{pose\_path}=\mathrm{raw\_root}/\mathrm{pose}/\mathrm{speaker}/\mathrm{sample}.npz
+\mathrm{PosePath}=\mathrm{RawRoot}/\mathrm{pose}/\mathrm{speaker}/\mathrm{sample}.npz
 $$
 
 文本路径：
 
 $$
-\mathrm{text\_path}=\mathrm{raw\_root}/\mathrm{hf}/\mathrm{speaker}/\mathrm{sample}.txt
+\mathrm{TextPath}=\mathrm{RawRoot}/\mathrm{hf}/\mathrm{speaker}/\mathrm{sample}.txt
 $$
 
 动作张量：
@@ -78,11 +78,11 @@ $$
 adapter 输出：
 
 $$
-\mathrm{source\_format}=\mathrm{beat\_bvh\_axis\_angle\_npz}
+\mathrm{SourceFormat}=\mathrm{BeatBvhAxisAngleNpz}
 $$
 
 $$
-\mathrm{codec\_key}=\mathrm{beat\_axis\_angle\_body22}
+\mathrm{CodecKey}=\mathrm{BeatAxisAngleBody22}
 $$
 
 文本 annotations 只进入：
@@ -98,13 +98,13 @@ $$
 `default_codecs()` 注册：
 
 $$
-\mathrm{beat\_axis\_angle\_body22}
+\mathrm{BeatAxisAngleBody22}
 =
 AxisAngleBody22Codec
 \left(
-o^{\mathrm{src}}=\mathrm{DEFAULT\_REST\_OFFSETS},
-\mathrm{source\_profile}=\mathrm{beat\_bvh\_body22},
-\mathrm{world\_basis}=\mathrm{identity\_y\_up}
+o^{\mathrm{src}}=\mathrm{DefaultRestOffsets},
+\mathrm{SourceProfile}=\mathrm{BeatBvhBody22},
+\mathrm{WorldBasis}=\mathrm{IdentityYUp}
 \right)
 $$
 
@@ -126,7 +126,7 @@ $$
 如果误把 BEAT 套用 AMASS/BABEL 的 $B$，数学上会变成：
 
 $$
-P_t'(j)=B_{\mathrm{z\_up\_to\_y\_up}}P_t(j)
+P_t'(j)=B_{\mathrm{ZUpToYUp}}P_t(j)
 $$
 
 这会把已经 Y-up 的对话手势整体旋转到错误平面。
@@ -166,27 +166,27 @@ $$
 BEAT 的 `.npz` 已被当前项目按 $22$ body order 解释：
 
 $$
-q_t^{\mathrm{root,src}}=q_{t,\mathrm{BODY\_INDEX}(\mathrm{hips})}
+q_t^{\mathrm{root,src}}=q(t,I_B(\mathrm{hips}))
 $$
 
 $$
-q_t^{j,\mathrm{src}}=q_{t,\mathrm{BODY\_INDEX}(j)},\qquad j\in B\setminus\{\mathrm{hips}\}
+q_t^{j,\mathrm{src}}=q(t,I_B(j)),\qquad j\in B\setminus\{\mathrm{hips}\}
 $$
 
-其中 $B=\mathrm{BODY\_BONES}$。
+其中 $B=B_{\mathrm{body}}$，$I_B$ 表示代码中的 `BODY_INDEX`。
 
 ## 6. direct quaternion retarget
 
 BEAT 调用和 SMPL-H 同一个函数：
 
 $$
-retarget\_named\_quats\_to\_vrm
+retargetNamedQuatsToVrm
 \left(
 \mathrm{trans},
 q^{\mathrm{root,src}},
 \{q^{j,\mathrm{src}}\},
 o^{\mathrm{src}},
-\mathrm{world\_basis}=\mathrm{identity\_y\_up}
+\mathrm{WorldBasis}=\mathrm{IdentityYUp}
 \right)
 $$
 

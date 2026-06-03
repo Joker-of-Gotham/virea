@@ -46,7 +46,7 @@ $$
 metadata 显式写入：
 
 $$
-\mathrm{declared\_world\_basis}=\mathrm{z\_up\_to\_y\_up}
+\mathrm{DeclaredWorldBasis}=\mathrm{ZUpToYUp}
 $$
 
 ## 2. Motion-X adapter 读取
@@ -64,7 +64,7 @@ $$
 $$
 
 $$
-\mathrm{face\_expr}=A_{[:,159:209]}
+\mathrm{FaceExpr}=A_{[:,159:209]}
 $$
 
 $$
@@ -98,7 +98,7 @@ $$
 metadata 显式写入：
 
 $$
-\mathrm{declared\_world\_basis}=\mathrm{identity\_y\_up}
+\mathrm{DeclaredWorldBasis}=\mathrm{IdentityYUp}
 $$
 
 ## 3. fullpose 到 55 个四元数
@@ -140,24 +140,26 @@ $$
 前 $22$ 个 SMPL-X body joints 按 `CANONICAL_BODY_WITH_ROOT` 解释：
 
 $$
-q_t^{\mathrm{root,src}}=Q^{55}_{t,\mathrm{BODY\_INDEX}(\mathrm{hips})}
+q_t^{\mathrm{root,src}}=Q^{55}(t,I_B(\mathrm{hips}))
 $$
 
 $$
-q_t^{j,\mathrm{body,src}}=Q^{55}_{t,\mathrm{BODY\_INDEX}(j)},\qquad j\in B\setminus\{\mathrm{hips}\}
+q_t^{j,\mathrm{body,src}}=Q^{55}(t,I_B(j)),\qquad j\in B\setminus\{\mathrm{hips}\}
 $$
 
 代码还先创建了 `core`：
 
 $$
-Q^{C}_{\mathrm{raw}}[t,\mathrm{CORE\_INDEX}(j)]=Q^{55}_{t,\mathrm{BODY\_INDEX}(j)}
+Q^{C}_{\mathrm{raw}}(t,I_C(j))=Q^{55}(t,I_B(j))
 $$
 
 但真正传给 `retarget_named_quats_to_vrm()` 的 body 输入是：
 
 $$
-\mathrm{local\_quats\_by\_name}=\{j\mapsto Q^{55}_{:, \mathrm{BODY\_INDEX}(j)}\mid j\in B,j\neq\mathrm{hips}\}
+\mathrm{LocalQuatsByName}=\{j\mapsto Q^{55}(:,I_B(j))\mid j\in B,j\neq\mathrm{hips}\}
 $$
+
+其中 $I_B$ 表示代码中的 `BODY_INDEX`，$I_C$ 表示代码中的 `CORE_INDEX`。
 
 ## 5. hand 映射
 
@@ -196,7 +198,7 @@ $$
 然后传入：
 
 $$
-\mathrm{hand\_quats\_by\_name}=\{k\mapsto Q^{k,\mathrm{hand,raw}}\mid k\in H\}
+\mathrm{HandQuatsByName}=\{k\mapsto Q^{k,\mathrm{hand,raw}}\mid k\in H\}
 $$
 
 ## 6. basis 选择函数
@@ -206,10 +208,10 @@ $$
 $$
 b=
 \begin{cases}
-\mathrm{metadata}[\mathrm{declared\_world\_basis}],&\mathrm{if\ present}\\
-\mathrm{metadata}[\mathrm{world\_basis}],&\mathrm{if\ present\ and\ string}\\
-\mathrm{z\_up\_to\_y\_up},&\mathrm{dataset}=\mathrm{grab}\\
-\mathrm{identity\_y\_up},&\mathrm{otherwise}
+\mathrm{metadata}[\mathrm{DeclaredWorldBasis}],&\mathrm{if\ present}\\
+\mathrm{metadata}[\mathrm{WorldBasis}],&\mathrm{if\ present\ and\ string}\\
+\mathrm{ZUpToYUp},&\mathrm{dataset}=\mathrm{grab}\\
+\mathrm{IdentityYUp},&\mathrm{otherwise}
 \end{cases}
 $$
 
@@ -240,7 +242,7 @@ $$
 SMPL-X 路径调用：
 
 $$
-retarget\_named\_quats\_to\_vrm
+retargetNamedQuatsToVrm
 \left(
 \mathrm{translation},
 q^{\mathrm{root,src}},
@@ -255,11 +257,11 @@ $$
 当前代码中：
 
 $$
-o^{\mathrm{body,src}}=\mathrm{DEFAULT\_REST\_OFFSETS}
+o^{\mathrm{body,src}}=\mathrm{DefaultRestOffsets}
 $$
 
 $$
-o^{\mathrm{hand,src}}=\mathrm{DEFAULT\_REST\_OFFSETS}
+o^{\mathrm{hand,src}}=\mathrm{DefaultRestOffsets}
 $$
 
 scale：
@@ -347,15 +349,15 @@ $$
 metadata：
 
 $$
-\mathrm{codec}=\mathrm{smplx\_fullpose}
+\mathrm{codec}=\mathrm{SmplxFullpose}
 $$
 
 $$
-\mathrm{source\_profile}=\mathrm{smplx\_fullpose55}
+\mathrm{SourceProfile}=\mathrm{SmplxFullpose55}
 $$
 
 $$
-\mathrm{retarget\_mode}=\mathrm{direct\_local\_quaternion\_retarget}
+\mathrm{RetargetMode}=\mathrm{DirectLocalQuaternionRetarget}
 $$
 
 ## 9. face、jaw、eyes、object 的边界
@@ -363,13 +365,13 @@ $$
 Motion-X 中：
 
 $$
-\mathrm{face\_expr}=A_{[:,159:209]}
+\mathrm{FaceExpr}=A_{[:,159:209]}
 $$
 
 GRAB 中：
 
 $$
-\mathrm{object\_name},\quad \mathrm{contact},\quad \mathrm{gender}
+\mathrm{ObjectName},\quad \mathrm{contact},\quad \mathrm{gender}
 $$
 
 这些进入 `motion` 或 metadata/annotations，但不进入：
@@ -408,4 +410,3 @@ $$
 $$
 
 因此 source preview 当前不显示 SMPL-X hand FK，只显示 body source skeleton。processed preview 和真实 VRM avatar 则包含 hand quats。
-

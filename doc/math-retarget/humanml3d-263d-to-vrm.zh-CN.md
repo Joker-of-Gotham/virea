@@ -13,7 +13,7 @@ $$
 $$
 \mathrm{263D\ feature}\rightarrow
 \mathrm{22\ joint\ positions}\rightarrow
-\mathrm{BODY\_BONES\ positions}\rightarrow
+\mathrm{BodyBones\ positions}\rightarrow
 \mathrm{VRM\ local\ quaternions}
 $$
 
@@ -22,13 +22,13 @@ $$
 `HumanML3DAdapter.load()` 要求 sample id 为：
 
 $$
-\mathrm{sample\_id}=\mathrm{split}/\mathrm{shard}/\mathrm{row}
+\mathrm{SampleId}=\mathrm{split}/\mathrm{shard}/\mathrm{row}
 $$
 
 读取：
 
 $$
-\mathrm{path}=\mathrm{raw\_root}/\mathrm{data}/(\mathrm{shard}+\mathrm{.parquet})
+\mathrm{path}=\mathrm{RawRoot}/\mathrm{data}/(\mathrm{shard}+\mathrm{.parquet})
 $$
 
 row 中：
@@ -46,9 +46,9 @@ $$
 metadata：
 
 $$
-\mathrm{num\_frames}=
+\mathrm{NumFrames}=
 \begin{cases}
-\mathrm{meta\_data}[\mathrm{num\_frames}],&\mathrm{if\ present}\\
+\mathrm{MetaData}[\mathrm{NumFrames}],&\mathrm{if\ present}\\
 T,&\mathrm{otherwise}
 \end{cases}
 $$
@@ -59,10 +59,10 @@ $$
 f=20
 $$
 
-annotations 来自 caption 行：
+annotations 来自 caption 行。代码取第一个井号分隔符之前的文本；令 $h$ 表示这个截断函数：
 
 $$
-\mathrm{annotation}_i=\mathrm{strip}\left(\mathrm{split}(c_i,\#)[0]\right)
+a_i=\mathrm{strip}(h(c_i))
 $$
 
 这些 annotations 不参与姿态数学。
@@ -83,7 +83,7 @@ $$
 若 `VIREA_TMR_SRC` 存在并可导入：
 
 $$
-X=guofeats\_to\_joints(M)
+X=guofeatsToJoints(M)
 $$
 
 代码实际调用：
@@ -92,7 +92,7 @@ $$
 X=
 cpu\left(
 detach\left(
-guofeats\_to\_joints(torch.tensor(M,\mathrm{float32}))
+guofeatsToJoints(torch.tensor(M,\mathrm{float32}))
 \right)
 \right)
 $$
@@ -106,13 +106,13 @@ $$
 joint names：
 
 $$
-N=\mathrm{JOINT\_NAMES}[\mathrm{guoh3djoints}]
+N=\mathrm{JointNames}[\mathrm{guoh3djoints}]
 $$
 
 metadata：
 
 $$
-\mathrm{humanml\_decoder}=\mathrm{guofeats\_to\_joints}
+\mathrm{HumanmlDecoder}=\mathrm{GuofeatsToJoints}
 $$
 
 ## 4. fallback 解码路径
@@ -158,17 +158,17 @@ $$
 names：
 
 $$
-N=\mathrm{FK\_BONES}_{0:22}
+N=\mathrm{FkBones}_{0:22}
 $$
 
 metadata：
 
 $$
-\mathrm{humanml\_decoder}=\mathrm{fallback\_rest\_pose}
+\mathrm{HumanmlDecoder}=\mathrm{FallbackRestPose}
 $$
 
 $$
-\mathrm{decoder\_error}=\mathrm{str}(\mathrm{exception})
+\mathrm{DecoderError}=\mathrm{str}(\mathrm{exception})
 $$
 
 因此 fallback 是 pipeline 保底，不是高质量 HumanML3D 真实解码。
@@ -182,8 +182,8 @@ g(\mathrm{pelvis})=\mathrm{hips}
 $$
 
 $$
-g(\mathrm{left\_hip})=\mathrm{leftUpperLeg},\qquad
-g(\mathrm{right\_hip})=\mathrm{rightUpperLeg}
+g(\mathrm{LeftHip})=\mathrm{leftUpperLeg},\qquad
+g(\mathrm{RightHip})=\mathrm{rightUpperLeg}
 $$
 
 $$
@@ -193,8 +193,8 @@ g(\mathrm{spine3})=\mathrm{upperChest}
 $$
 
 $$
-g(\mathrm{left\_wrist})=\mathrm{leftHand},\qquad
-g(\mathrm{right\_wrist})=\mathrm{rightHand}
+g(\mathrm{LeftWrist})=\mathrm{leftHand},\qquad
+g(\mathrm{RightWrist})=\mathrm{rightHand}
 $$
 
 完整映射见代码中的 `GUOH3D_TO_CANONICAL`。
@@ -204,8 +204,8 @@ $$
 $$
 n_i=
 \begin{cases}
-\mathrm{clip.source\_joint\_names}_i,&\mathrm{if\ provided}\\
-\mathrm{default\_joint\_names}_i,&\mathrm{otherwise}
+\mathrm{clip.sourceJointNames}_i,&\mathrm{if\ provided}\\
+\mathrm{DefaultJointNames}_i,&\mathrm{otherwise}
 \end{cases}
 $$
 
@@ -217,7 +217,7 @@ n_i,&\mathrm{otherwise}
 \end{cases}
 $$
 
-若 $m_i\in\mathrm{FK\_BONES}$ 且之前未出现，则加入 mapped set：
+若 $m_i\in\mathrm{FkBones}$ 且之前未出现，则加入 mapped set：
 
 $$
 M=\{m_i\}
@@ -235,7 +235,7 @@ $$
 M=[\mathrm{hips}],\qquad Y\in\mathbb{R}^{T\times1\times3},\quad Y_{t,0}=[0,0,0]
 $$
 
-## 6. BODY_BONES 对齐
+## 6. BODY bones 对齐
 
 `body_positions_from_fk_positions(Y, mapped_names)` 生成：
 
@@ -249,12 +249,10 @@ $$
 B_{\mathrm{pos},t,j}=[0,0,0]
 $$
 
-对每个 body bone $b\in\mathrm{BODY\_BONES}$，若 $b\in M$：
+对每个 body bone $b\in B_{\mathrm{body}}$，若 $b\in M$。令 $I_B$ 表示代码中的 `BODY_INDEX`，令 $I_M$ 表示 mapped set 中的索引函数：
 
 $$
-B_{\mathrm{pos},t,\mathrm{BODY\_INDEX}(b)}
-=
-Y_{t,\mathrm{index}_{M}(b)}
+B_{\mathrm{pos}}(t,I_B(b))=Y(t,I_M(b))
 $$
 
 未映射骨骼保持零。这一点很重要：position fitting 会尝试拟合存在的 primary child，缺失骨骼会退化为单位旋转或父旋转继承。
@@ -264,7 +262,7 @@ $$
 `HumanML3D263Codec` 继承 `PositionSequenceCodec`，默认：
 
 $$
-\mathrm{world\_basis}=\mathrm{z\_up\_to\_y\_up}
+\mathrm{WorldBasis}=\mathrm{ZUpToYUp}
 $$
 
 因此：
@@ -349,7 +347,7 @@ $$
 对每个 $j\in C$，取 primary child：
 
 $$
-\chi(j)=\mathrm{PRIMARY\_CHILD}[j]
+\chi(j)=\mathrm{PrimaryChild}[j]
 $$
 
 若 $\chi(j)$ 或 $j$ 不在 `BODY_INDEX`，代码不拟合该骨骼，而是：
@@ -418,15 +416,15 @@ $$
 metadata：
 
 $$
-\mathrm{position\_to\_rotation}=\mathrm{position\_fit\_to\_vrm}
+\mathrm{PositionToRotation}=\mathrm{PositionFitToVrm}
 $$
 
 $$
-\mathrm{retarget\_scale}=\lambda
+\mathrm{RetargetScale}=\lambda
 $$
 
 $$
-\mathrm{native\_joint\_names}=N
+\mathrm{NativeJointNames}=N
 $$
 
 ## 12. source preview
@@ -446,7 +444,7 @@ $$
 生成 body positions：
 
 $$
-B_{\mathrm{pos}}=body\_positions\_from\_fk\_positions(X,\tilde{N})
+B_{\mathrm{pos}}=bodyPositionsFromFkPositions(X,\tilde{N})
 $$
 
 再调用 `source_positions_normalized()`：
@@ -472,7 +470,7 @@ AMASS adapter 对 `humanact12/*.npy` 设置：
 
 $$
 \mathrm{positions}\in\mathbb{R}^{T\times J\times3},\qquad
-\mathrm{codec\_key}=\mathrm{position\_sequence},\qquad f=20
+\mathrm{CodecKey}=\mathrm{PositionSequence},\qquad f=20
 $$
 
 其数学路径从本文第 $5$ 节开始，不经过 HumanML3D 263D decode：
@@ -481,6 +479,5 @@ $$
 \mathrm{positions}\rightarrow
 \mathrm{joint\ name\ mapping}\rightarrow
 \mathrm{body\ positions}\rightarrow
-fit\_positions\_to\_vrm
+fitPositionsToVrm
 $$
-

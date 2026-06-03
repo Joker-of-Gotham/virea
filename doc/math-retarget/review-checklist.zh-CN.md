@@ -102,7 +102,7 @@ $$
 SuSu 当前输出边界：
 
 $$
-S_{\mathrm{SuSu}}=fit\_positions\_to\_vrm(\cdot)
+S_{\mathrm{SuSu}}=fitPositionsToVrm(\cdot)
 $$
 
 $$
