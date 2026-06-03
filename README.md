@@ -174,6 +174,7 @@ committed into source or docs:
 
 - [Documentation index](doc/README.zh-CN.md)
 - [Theory and scope](doc/theory.zh-CN.md)
+- [Retarget mathematics](doc/math-retarget/README.zh-CN.md)
 - [Engineering design](doc/engineering-design.zh-CN.md)
 - [Pipeline guide](doc/pipeline.zh-CN.md)
 - [Showcase generation](doc/showcase/README.md)
