@@ -1,136 +1,295 @@
-# BVH / BEAT 到 VRM 的 retarget 原理
+# BVH / BEAT 到 VRM 的 retarget 数学
 
-覆盖数据集：BEAT。
+覆盖数据集：BEAT。对应代码：`BEATAdapter`、`AxisAngleBody22Codec(source_profile="beat_bvh_body22", world_basis="identity_y_up")`。
 
-BEAT 是对话手势多模态数据集，包含 audio、text、emotion、face 等信息。当前 VIREA 对 BEAT 的动作侧读取 `pose/*.npz`，它是 BVH 派生的 22 关节 body axis-angle pack，因此数学上接近 SMPL-H 的 axis-angle body retarget，但 source profile、rest offsets 和 world basis 不同，必须单独记录。
+BEAT 在 VIREA 中并不直接解析 `.bvh` 文本。当前读取的是上游整理后的 BVH-derived `.npz`，其中 body pose 已经表示为 $22$ joint axis-angle。因此数学上它复用 `AxisAngleBody22Codec`，但不能复用 AMASS/BABEL 的 basis。
 
-## 1. BVH 的一般结构
+## 1. BVH 一般数学背景
 
-BVH 文件通常由两部分组成：
+标准 BVH 给出一棵层级树。对 root：
 
-```text
-HIERARCHY
-  ROOT / JOINT / OFFSET / CHANNELS / End Site
+$$
+\mathrm{channels}_{\mathrm{root}}=
+[p_x,p_y,p_z,\alpha_1,\alpha_2,\alpha_3]
+$$
 
-MOTION
-  Frames: N
-  Frame Time: dt
-  frame channel values...
-```
+对普通 joint：
 
-root 往往有 6 个通道：3 个 position + 3 个 rotation。普通 joint 通常只有 rotation channels。rotation order 由 `CHANNELS` 中的顺序决定，例如 `Zrotation Xrotation Yrotation` 与 `Xrotation Yrotation Zrotation` 不是同一个数学对象。
+$$
+\mathrm{channels}_{j}=[\alpha_1,\alpha_2,\alpha_3]
+$$
 
-BEAT adapter 当前不直接解析 `.bvh` 文本，而是读取已经整理成 `.npz` 的 BVH-derived axis-angle：
+如果 rotation order 是 $(a,b,c)$，对应局部旋转矩阵通常是：
 
-```text
-poses: (T, D)
-trans: (T, 3)
-fps: payload["fps"] 或默认 30
-```
+$$
+R_j=R_a(\alpha_a)R_b(\alpha_b)R_c(\alpha_c)
+$$
 
-因此在 VIREA 中，BVH 的 Euler/channel 阶段已经发生在上游，当前需要保证的是：把这个 BVH-derived 22-joint body pose 按正确 rest/basis 解释。
+不同 BVH 文件的 rotation order 会改变 $R_j$。但 BEAT adapter 当前读取的不是原始 channels，而是：
+
+$$
+\mathrm{poses}\in\mathbb{R}^{T\times D},\qquad D\ge66
+$$
+
+也就是说，BVH Euler/channel 到 axis-angle 的步骤已经在上游完成。VIREA 从这里开始：
+
+$$
+\mathrm{BVH\ channels}\xrightarrow{\mathrm{upstream}}\mathrm{axis\text{-}angle\ body22}
+\xrightarrow{\mathrm{VIREA}}\mathrm{VRM}
+$$
 
 ## 2. BEAT adapter 读取
 
 读取路径：
 
-```text
-raw_root/pose/<speaker>/<sample>.npz
-raw_root/hf/<speaker>/<sample>.txt
-```
+$$
+\mathrm{pose\_path}=\mathrm{raw\_root}/\texttt{pose}/\mathrm{speaker}/\mathrm{sample}.npz
+$$
 
-输出：
+文本路径：
 
-```text
-source_format = beat_bvh_axis_angle_npz
-codec_key = beat_axis_angle_body22
-text/annotations = hf text file
-```
+$$
+\mathrm{text\_path}=\mathrm{raw\_root}/\texttt{hf}/\mathrm{speaker}/\mathrm{sample}.txt
+$$
 
-`hf` 文本用于 gesture/semantic annotations，不参与姿态数学。
+动作张量：
 
-## 3. axis-angle 数学
+$$
+\mathrm{poses}\in\mathbb{R}^{T\times D},\qquad
+\mathrm{trans}\in\mathbb{R}^{T\times3}
+$$
 
-与 SMPL-H 相同：
+若 `trans` 缺失：
 
-```text
-body_axis_angle = poses[:, :22*3].reshape(T, 22, 3)
-q_j = axis_angle_to_quat_xyzw(body_axis_angle_j)
-```
+$$
+\mathrm{trans}_t=[0,0,0]
+$$
 
-每帧 body pose 分成：
+fps：
 
-```text
-root_rotation = q_hips
-local_quats_by_name[j] = q_j, j != hips
-root_translation = trans
-```
+$$
+f=
+\begin{cases}
+\mathrm{payload}[\texttt{fps}],&\mathrm{if\ present}\\
+30,&\mathrm{otherwise}
+\end{cases}
+$$
 
-## 4. BEAT 与 AMASS 的关键差异
+adapter 输出：
 
-虽然二者进入同一个 `AxisAngleBody22Codec` 类，但 BEAT 注册为：
+$$
+\mathrm{source\_format}=\texttt{beat\_bvh\_axis\_angle\_npz}
+$$
 
-```text
-source_profile = beat_bvh_body22
-world_basis = identity_y_up
-```
+$$
+\mathrm{codec\_key}=\texttt{beat\_axis\_angle\_body22}
+$$
 
-而 AMASS/BABEL 是：
+文本 annotations 只进入：
 
-```text
-source_profile = smplh_body22
-world_basis = z_up_to_y_up
-```
+$$
+\mathrm{annotations},\quad \mathrm{text},\quad \mathrm{metadata}
+$$
 
-这说明 BEAT 的姿态 pack 已经处在目标兼容的 Y-up basis 中，不能再套 AMASS 的 Z-up 转换。否则典型错误是整个人绕 X 轴旋转，地面动作变成墙面动作。
+不参与 body FK。
 
-## 5. rest profile
+## 3. codec 配置
 
-BVH skeleton 的 rest pose 由 `OFFSET` 层级定义，和 SMPL/VRM 都不同。当前 VIREA 使用 `beat_bvh_body22` profile，并用默认/目标 rest offsets 做 correction。
+`default_codecs()` 注册：
 
-核心公式仍是：
+$$
+\texttt{beat\_axis\_angle\_body22}
+=
+\operatorname{AxisAngleBody22Codec}
+\left(
+o^{\mathrm{src}}=\texttt{DEFAULT\_REST\_OFFSETS},
+\mathrm{source\_profile}=\texttt{beat\_bvh\_body22},
+\mathrm{world\_basis}=\texttt{identity\_y\_up}
+\right)
+$$
 
-```text
-c_j = rotation_between(target_primary_child_offset, source_primary_child_offset)
-q'_j = inverse(c_parent(j)) q_j c_j
-```
+与 AMASS/BABEL 的差异是：
 
-对 BVH 派生数据要特别注意：
+$$
+\mathrm{BEAT}:\ B=I
+$$
 
-- BVH rotation channel 可能来自不同 Euler order；
-- 上游转换成 axis-angle 后已经丢失 channel order 显式信息；
-- 因此 adapter 必须把这个 `.npz` 当作一个明确 source_format，而不能假设所有 BVH 都可复用。
+$$
+\mathrm{AMASS/BABEL}:\ B=
+\begin{bmatrix}
+1&0&0\\
+0&0&1\\
+0&-1&0
+\end{bmatrix}
+$$
 
-## 6. root 与 fps
+如果误把 BEAT 套用 AMASS/BABEL 的 $B$，数学上会变成：
 
-BEAT 的 fps 来自 `.npz` 中的 `fps` 字段，缺失时默认 30。播放时必须使用每个 clip 的 fps：
+$$
+P_t'(j)=B_{\mathrm{z\_up\_to\_y\_up}}P_t(j)
+$$
 
-```text
-time_sec = frame_index / fps
-```
+这会把已经 Y-up 的对话手势整体旋转到错误平面。
 
-如果固定用 viewer 刷新率或固定 30fps，会造成口型/语音/手势节奏错位。BEAT 是语音手势数据，这一点比纯动作数据更敏感。
+## 4. axis-angle 切片与四元数
 
-## 7. 输出
+和 `AxisAngleBody22Codec._body_quats()` 一致：
 
-BEAT 当前输出 body-only VRM motion：
+$$
+A=\operatorname{reshape}\left(\mathrm{poses}_{[:,0:66]},T,22,3\right)
+$$
 
-```text
-root_translation_vrm
-root_rotation_vrm
-core_quats_vrm
-hand_quats_identity
-```
+对每个 $A_{t,i}$：
 
-虽然 BEAT 数据集有 face/audio/emotion，但当前骨骼 retarget 不驱动 VRM expression。后续扩展应把 face/audio pipeline 与 humanoid skeleton pipeline 分开。
+$$
+\theta_{t,i}=\|A_{t,i}\|_2
+$$
 
-## 8. 验证重点
+$$
+q_{t,i}=
+\left[
+\frac{A_{t,i,x}}{\max(\theta_{t,i},10^{-8})}\sin\frac{\theta_{t,i}}{2},\
+\frac{A_{t,i,y}}{\max(\theta_{t,i},10^{-8})}\sin\frac{\theta_{t,i}}{2},\
+\frac{A_{t,i,z}}{\max(\theta_{t,i},10^{-8})}\sin\frac{\theta_{t,i}}{2},\
+\cos\frac{\theta_{t,i}}{2}
+\right]
+$$
 
-BEAT retarget 的评审重点：
+若 $\theta_{t,i}<10^{-8}$：
 
-- fps 与语音/文本 annotation 时间是否一致；
-- `identity_y_up` 是否被保留，没有误套 Z-up 变换；
-- root translation 是否中心化；
-- 手臂手势是否仍围绕躯干自然运动；
-- body-only 输出不会伪造不存在的手指 motion。
+$$
+q_{t,i}=[0,0,0,1]
+$$
+
+## 5. body 映射
+
+BEAT 的 `.npz` 已被当前项目按 $22$ body order 解释：
+
+$$
+q_t^{\mathrm{root,src}}=q_{t,\mathrm{BODY\_INDEX}(\mathrm{hips})}
+$$
+
+$$
+q_t^{j,\mathrm{src}}=q_{t,\mathrm{BODY\_INDEX}(j)},\qquad j\in\mathcal{B}\setminus\{\mathrm{hips}\}
+$$
+
+其中 $\mathcal{B}=\texttt{BODY\_BONES}$。
+
+## 6. direct quaternion retarget
+
+BEAT 调用和 SMPL-H 同一个函数：
+
+$$
+\operatorname{retarget\_named\_quats\_to\_vrm}
+\left(
+\mathrm{trans},
+q^{\mathrm{root,src}},
+\{q^{j,\mathrm{src}}\},
+o^{\mathrm{src}},
+\mathrm{world\_basis}=\texttt{identity\_y\_up}
+\right)
+$$
+
+scale：
+
+$$
+\lambda=
+\frac{\sum_{C\in\mathcal{K}}\sum_{j\in C}\|\bar{o}_j\|}
+{\sum_{C\in\mathcal{K}}\sum_{j\in C}\|o_j^{\mathrm{src}}\|}
+$$
+
+root：
+
+$$
+r_t^{\mathrm{vrm}}=I(\lambda\mathrm{trans}_t-\lambda\mathrm{trans}_0)
+=\lambda(\mathrm{trans}_t-\mathrm{trans}_0)
+$$
+
+root rotation basis：
+
+$$
+q_t^{\mathrm{root,basis}}=q(I)q_t^{\mathrm{root,src}}=q_t^{\mathrm{root,src}}
+$$
+
+rest correction：
+
+$$
+c_j=\operatorname{Rot}(\bar{o}_{\chi(j)}\to o_{\chi(j)}^{\mathrm{src}})
+$$
+
+$$
+q_t^{j,\mathrm{target}}=
+\widehat{
+c_{\pi(j)}^{-1}q_t^{j,\mathrm{src}}c_j
+}
+$$
+
+缺失 correction 时省略对应因子。hand 未传入，所以：
+
+$$
+q_t^{k,\mathrm{hand}}=[0,0,0,1],\qquad k\in\mathcal{H}
+$$
+
+## 7. 输出和 fps 语义
+
+输出 sequence：
+
+$$
+S=\operatorname{pack}
+\left(
+r^{\mathrm{vrm}},
+q^{\mathrm{root,target}},
+Q^{\mathcal{C},\mathrm{target}},
+I^{\mathcal{H}}
+\right)
+$$
+
+processed positions：
+
+$$
+P^{\mathrm{target}}=\operatorname{FK}(S,\bar{o})
+$$
+
+fps 保存在 `RawClip.motion["fps"]` 和 `SampleRef.fps` 中。播放时间应满足：
+
+$$
+t_{\mathrm{sec}}(n)=\frac{n}{f}
+$$
+
+而不能固定为：
+
+$$
+t_{\mathrm{sec}}(n)=\frac{n}{30}
+$$
+
+除非 $f=30$。BEAT 是语音手势数据，错误 fps 会破坏 gesture 和 text/audio annotation 的时间关系。
+
+## 8. source preview
+
+`extract_source()` 同样执行 source FK：
+
+$$
+\hat{P}^{\mathrm{src}}=
+\operatorname{FK}
+\left(
+\lambda\mathrm{trans}-\lambda\mathrm{trans}_0,
+q^{\mathrm{root,src}},
+\{q^{j,\mathrm{src}}\},
+o^{\mathrm{src}}
+\right)
+$$
+
+因为 $B=I$：
+
+$$
+\hat{P}^{\mathrm{src,basis}}=\hat{P}^{\mathrm{src}}
+$$
+
+最后以第一帧 hips 居中：
+
+$$
+\hat{P}_t(j)\leftarrow \hat{P}_t(j)-\hat{P}_0(\mathrm{hips})
+$$
+
+这说明 BEAT before preview 是 BVH-derived body skeleton 的解释结果；after preview 是 VRM target skeleton 的执行结果。
 

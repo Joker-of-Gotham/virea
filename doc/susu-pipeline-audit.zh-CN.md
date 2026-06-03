@@ -10,6 +10,7 @@
 - `chonglu` root 与 `positions[:, 0]` 可通过 `X/Z/Y` 重排和 `0.01` 缩放逐帧对齐。
 - `retarget_maya` 文件混有米制 root 和厘米制 FBX root；pipeline 会按数值范围自动选择 `1.0` 或 `0.01` 有效缩放，并以首帧 root 归零。
 - SuSu body/hands 的 6D rotation 按 `row_major_first_two_rows` 重建旋转矩阵，先解释为世界/全局朝向，再根据 humanoid 父子拓扑转换为父节点局部四元数。
+- 当前最终 `CanonicalResult.sequence` 来自 `fit_positions_to_vrm()`；body/hand 的 global-to-local 四元数是中间审计量，SuSu 手指四元数尚未注入最终 VRM sequence。
 - 不再把 `retarget_maya` 的下肢强制置为 rest pose。全局转局部后下肢稳定，旧保护分支反而会干扰世界坐标 basis 推断，造成左右轴翻转、手臂交叉和肩膀内缩。
 
 ## 实现位置
