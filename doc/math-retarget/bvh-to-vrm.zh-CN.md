@@ -34,8 +34,8 @@ $$
 也就是说，BVH Euler/channel 到 axis-angle 的步骤已经在上游完成。VIREA 从这里开始：
 
 $$
-\mathrm{BVH\ channels}\xrightarrow{\mathrm{upstream}}\mathrm{axis\text{-}angle\ body22}
-\xrightarrow{\mathrm{VIREA}}\mathrm{VRM}
+\mathrm{BVH\ channels}\rightarrow_{\mathrm{upstream}}\mathrm{axis{-}angle\ body22}
+\rightarrow_{\mathrm{VIREA}}\mathrm{VRM}
 $$
 
 ## 2. BEAT adapter 读取
@@ -43,13 +43,13 @@ $$
 读取路径：
 
 $$
-\mathrm{pose\_path}=\mathrm{raw\_root}/\texttt{pose}/\mathrm{speaker}/\mathrm{sample}.npz
+\mathrm{pose\_path}=\mathrm{raw\_root}/\mathrm{pose}/\mathrm{speaker}/\mathrm{sample}.npz
 $$
 
 文本路径：
 
 $$
-\mathrm{text\_path}=\mathrm{raw\_root}/\texttt{hf}/\mathrm{speaker}/\mathrm{sample}.txt
+\mathrm{text\_path}=\mathrm{raw\_root}/\mathrm{hf}/\mathrm{speaker}/\mathrm{sample}.txt
 $$
 
 动作张量：
@@ -70,7 +70,7 @@ fps：
 $$
 f=
 \begin{cases}
-\mathrm{payload}[\texttt{fps}],&\mathrm{if\ present}\\
+\mathrm{payload}[\mathrm{fps}],&\mathrm{if\ present}\\
 30,&\mathrm{otherwise}
 \end{cases}
 $$
@@ -78,11 +78,11 @@ $$
 adapter 输出：
 
 $$
-\mathrm{source\_format}=\texttt{beat\_bvh\_axis\_angle\_npz}
+\mathrm{source\_format}=\mathrm{beat\_bvh\_axis\_angle\_npz}
 $$
 
 $$
-\mathrm{codec\_key}=\texttt{beat\_axis\_angle\_body22}
+\mathrm{codec\_key}=\mathrm{beat\_axis\_angle\_body22}
 $$
 
 文本 annotations 只进入：
@@ -98,13 +98,13 @@ $$
 `default_codecs()` 注册：
 
 $$
-\texttt{beat\_axis\_angle\_body22}
+\mathrm{beat\_axis\_angle\_body22}
 =
-\operatorname{AxisAngleBody22Codec}
+AxisAngleBody22Codec
 \left(
-o^{\mathrm{src}}=\texttt{DEFAULT\_REST\_OFFSETS},
-\mathrm{source\_profile}=\texttt{beat\_bvh\_body22},
-\mathrm{world\_basis}=\texttt{identity\_y\_up}
+o^{\mathrm{src}}=\mathrm{DEFAULT\_REST\_OFFSETS},
+\mathrm{source\_profile}=\mathrm{beat\_bvh\_body22},
+\mathrm{world\_basis}=\mathrm{identity\_y\_up}
 \right)
 $$
 
@@ -136,7 +136,7 @@ $$
 和 `AxisAngleBody22Codec._body_quats()` 一致：
 
 $$
-A=\operatorname{reshape}\left(\mathrm{poses}_{[:,0:66]},T,22,3\right)
+A=reshape\left(\mathrm{poses}_{[:,0:66]},T,22,3\right)
 $$
 
 对每个 $A_{t,i}$：
@@ -170,23 +170,23 @@ q_t^{\mathrm{root,src}}=q_{t,\mathrm{BODY\_INDEX}(\mathrm{hips})}
 $$
 
 $$
-q_t^{j,\mathrm{src}}=q_{t,\mathrm{BODY\_INDEX}(j)},\qquad j\in\mathcal{B}\setminus\{\mathrm{hips}\}
+q_t^{j,\mathrm{src}}=q_{t,\mathrm{BODY\_INDEX}(j)},\qquad j\in B\setminus\{\mathrm{hips}\}
 $$
 
-其中 $\mathcal{B}=\texttt{BODY\_BONES}$。
+其中 $B=\mathrm{BODY\_BONES}$。
 
 ## 6. direct quaternion retarget
 
 BEAT 调用和 SMPL-H 同一个函数：
 
 $$
-\operatorname{retarget\_named\_quats\_to\_vrm}
+retarget\_named\_quats\_to\_vrm
 \left(
 \mathrm{trans},
 q^{\mathrm{root,src}},
 \{q^{j,\mathrm{src}}\},
 o^{\mathrm{src}},
-\mathrm{world\_basis}=\texttt{identity\_y\_up}
+\mathrm{world\_basis}=\mathrm{identity\_y\_up}
 \right)
 $$
 
@@ -194,8 +194,8 @@ scale：
 
 $$
 \lambda=
-\frac{\sum_{C\in\mathcal{K}}\sum_{j\in C}\|\bar{o}_j\|}
-{\sum_{C\in\mathcal{K}}\sum_{j\in C}\|o_j^{\mathrm{src}}\|}
+\frac{\sum_{C\in K}\sum_{j\in C}\|\bar{o}_j\|}
+{\sum_{C\in K}\sum_{j\in C}\|o_j^{\mathrm{src}}\|}
 $$
 
 root：
@@ -214,7 +214,7 @@ $$
 rest correction：
 
 $$
-c_j=\operatorname{Rot}(\bar{o}_{\chi(j)}\to o_{\chi(j)}^{\mathrm{src}})
+c_j=Rot(\bar{o}_{\chi(j)}\to o_{\chi(j)}^{\mathrm{src}})
 $$
 
 $$
@@ -227,7 +227,7 @@ $$
 缺失 correction 时省略对应因子。hand 未传入，所以：
 
 $$
-q_t^{k,\mathrm{hand}}=[0,0,0,1],\qquad k\in\mathcal{H}
+q_t^{k,\mathrm{hand}}=[0,0,0,1],\qquad k\in H
 $$
 
 ## 7. 输出和 fps 语义
@@ -235,19 +235,19 @@ $$
 输出 sequence：
 
 $$
-S=\operatorname{pack}
+S=pack
 \left(
 r^{\mathrm{vrm}},
 q^{\mathrm{root,target}},
-Q^{\mathcal{C},\mathrm{target}},
-I^{\mathcal{H}}
+Q^{C,\mathrm{target}},
+I^{H}
 \right)
 $$
 
 processed positions：
 
 $$
-P^{\mathrm{target}}=\operatorname{FK}(S,\bar{o})
+P^{\mathrm{target}}=FK(S,\bar{o})
 $$
 
 fps 保存在 `RawClip.motion["fps"]` 和 `SampleRef.fps` 中。播放时间应满足：
@@ -270,7 +270,7 @@ $$
 
 $$
 \hat{P}^{\mathrm{src}}=
-\operatorname{FK}
+FK
 \left(
 \lambda\mathrm{trans}-\lambda\mathrm{trans}_0,
 q^{\mathrm{root,src}},
@@ -292,4 +292,3 @@ $$
 $$
 
 这说明 BEAT before preview 是 BVH-derived body skeleton 的解释结果；after preview 是 VRM target skeleton 的执行结果。
-

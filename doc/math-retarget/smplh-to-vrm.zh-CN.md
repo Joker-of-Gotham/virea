@@ -5,7 +5,7 @@
 AMASS 和 BABEL 在 VIREA 中共享同一个数学主路径。BABEL 的 annotation 只改变 text/metadata，不改变 pose tensor 的解释。主路径是：
 
 $$
-\mathrm{SMPL/SMPL\text{-}H\ axis\text{-}angle}\rightarrow
+\mathrm{SMPL/SMPL{-}H\ axis{-}angle}\rightarrow
 \mathrm{22\ body\ local\ quaternions}\rightarrow
 \mathrm{rest\ corrected\ VRM\ local\ quaternions}
 $$
@@ -46,7 +46,7 @@ $$
 \end{cases}
 $$
 
-然后读取同样的 $\mathrm{poses}$、$\mathrm{trans}$、$f$。annotation record $\mathcal{A}$ 只进入：
+然后读取同样的 $\mathrm{poses}$、$\mathrm{trans}$、$f$。annotation record $A$ 只进入：
 
 $$
 \mathrm{annotations},\quad \mathrm{text},\quad \mathrm{metadata}
@@ -65,7 +65,7 @@ $$
 代码只取前 $66$ 维：
 
 $$
-A=\operatorname{reshape}\left(\mathrm{poses}_{[:,0:66]},T,22,3\right)
+A=reshape\left(\mathrm{poses}_{[:,0:66]},T,22,3\right)
 $$
 
 其中 $A_{t,i}\in\mathbb{R}^3$ 是第 $t$ 帧第 $i$ 个 body joint 的 axis-angle。
@@ -73,7 +73,7 @@ $$
 若 $\mathrm{poses}$ 不是二维或 $D<66$，代码抛出错误：
 
 $$
-\mathrm{ValueError}(\mathrm{expected\ body\ axis\text{-}angle\ block})
+\mathrm{ValueError}(\mathrm{expected\ body\ axis{-}angle\ block})
 $$
 
 ## 3. axis-angle 转 body quaternions
@@ -115,7 +115,7 @@ $$
 `BODY_BONES` 与 `CANONICAL_BODY_WITH_ROOT` 的顺序为：
 
 $$
-\mathcal{B}=[
+B=[
 \mathrm{hips},\mathrm{leftUpperLeg},\mathrm{rightUpperLeg},\mathrm{spine},
 \ldots,\mathrm{leftHand},\mathrm{rightHand}
 ]
@@ -124,7 +124,7 @@ $$
 因此索引映射是直接按位置：
 
 $$
-\phi(i)=\mathcal{B}_i,\qquad i=0,\ldots,21
+\phi(i)=B_i,\qquad i=0,\ldots,21
 $$
 
 root rotation：
@@ -137,7 +137,7 @@ $$
 
 $$
 q_t^{j,\mathrm{src}}=
-Q^{\mathrm{body}}_{t,\mathrm{BODY\_INDEX}(j)},\qquad j\in\mathcal{B}\setminus\{\mathrm{hips}\}
+Q^{\mathrm{body}}_{t,\mathrm{BODY\_INDEX}(j)},\qquad j\in B\setminus\{\mathrm{hips}\}
 $$
 
 这些值被传入 `local_quats_by_name`。
@@ -147,11 +147,11 @@ $$
 AMASS/BABEL 进入默认 `AxisAngleBody22Codec()`：
 
 $$
-\mathrm{source\_profile}=\texttt{smplh\_body22}
+\mathrm{source\_profile}=\mathrm{smplh\_body22}
 $$
 
 $$
-\mathrm{world\_basis}=\texttt{z\_up\_to\_y\_up}
+\mathrm{world\_basis}=\mathrm{z\_up\_to\_y\_up}
 $$
 
 source rest offsets 在当前构造中是 `DEFAULT_REST_OFFSETS`，记作 $o_j^{\mathrm{src}}$。target rest offsets 为 $\bar{o}_j$，可能来自 VRM rest inspection，也可能是默认模板。
@@ -173,8 +173,8 @@ $$
 
 $$
 \lambda=
-\frac{\sum_{C\in\mathcal{K}}\sum_{j\in C}\|\bar{o}_j\|_2}
-{\sum_{C\in\mathcal{K}}\sum_{j\in C}\|o_j^{\mathrm{src}}\|_2}
+\frac{\sum_{C\in K}\sum_{j\in C}\|\bar{o}_j\|_2}
+{\sum_{C\in K}\sum_{j\in C}\|o_j^{\mathrm{src}}\|_2}
 $$
 
 然后：
@@ -196,15 +196,15 @@ $$
 这对应代码：
 
 $$
-\texttt{target\_root\_translation = root\_translation * scale}
+\mathrm{target\_root\_translation = root\_translation * scale}
 $$
 
 $$
-\texttt{target\_root\_translation -= target\_root\_translation[:1]}
+\mathrm{target\_root\_translation -= target\_root\_translation[:1]}
 $$
 
 $$
-\texttt{target\_root\_translation = rotate\_positions\_by\_matrix(..., B)}
+\mathrm{target\_root\_translation = rotate\_positions\_by\_matrix(..., B)}
 $$
 
 ## 7. source FK 与 basis 后 source positions
@@ -263,7 +263,7 @@ $$
 correction：
 
 $$
-c_j=\operatorname{Rot}(v_j\to u_j)
+c_j=Rot(v_j\to u_j)
 $$
 
 root：
@@ -276,7 +276,7 @@ q_t^{\mathrm{root,basis}},&\mathrm{otherwise}
 \end{cases}
 $$
 
-每个 core bone $j\in\mathcal{C}$：
+每个 core bone $j\in C$：
 
 $$
 \tilde{q}_t^j=\widehat{q_t^{j,\mathrm{src}}}
@@ -303,13 +303,13 @@ $$
 这就是代码中：
 
 $$
-\texttt{mapped = inverse(parent\_correction) * mapped}
+\mathrm{mapped = inverse(parent\_correction) * mapped}
 $$
 
 和：
 
 $$
-\texttt{mapped = mapped * correction}
+\mathrm{mapped = mapped * correction}
 $$
 
 的数学形式。
@@ -319,7 +319,7 @@ $$
 AMASS/BABEL 当前主路径没有传入 `hand_quats_by_name`，所以：
 
 $$
-q_t^{k,\mathrm{hand}}=[0,0,0,1],\qquad k\in\mathcal{H}
+q_t^{k,\mathrm{hand}}=[0,0,0,1],\qquad k\in H
 $$
 
 也就是 `identity_quats(T, len(HAND_BONES))`。
@@ -329,25 +329,25 @@ $$
 最终：
 
 $$
-S=\operatorname{pack}
+S=pack
 \left(
 r^{\mathrm{vrm}},
 q^{\mathrm{root,target}},
-\{q^{j,\mathrm{target}}\}_{j\in\mathcal{C}},
-I^{\mathcal{H}}
+\{q^{j,\mathrm{target}}\}_{j\in C},
+I^{H}
 \right)
 $$
 
 target positions：
 
 $$
-P^{\mathrm{target}}=\operatorname{FK}(S,\bar{o})
+P^{\mathrm{target}}=FK(S,\bar{o})
 $$
 
 `CanonicalResult` 中：
 
 $$
-\mathrm{retarget\_mode}=\texttt{direct\_local\_quaternion\_retarget}
+\mathrm{retarget\_mode}=\mathrm{direct\_local\_quaternion\_retarget}
 $$
 
 $$
@@ -355,7 +355,7 @@ $$
 $$
 
 $$
-\mathrm{declared\_world\_basis}=\texttt{z\_up\_to\_y\_up}
+\mathrm{declared\_world\_basis}=\mathrm{z\_up\_to\_y\_up}
 $$
 
 ## 12. source preview 的数学
@@ -367,7 +367,7 @@ $$
 $$
 
 $$
-\hat{P}^{\mathrm{src}}=\operatorname{FK}(\hat{r},q^{\mathrm{root,src}},q^{j,\mathrm{src}},o^{\mathrm{src}})
+\hat{P}^{\mathrm{src}}=FK(\hat{r},q^{\mathrm{root,src}},q^{j,\mathrm{src}},o^{\mathrm{src}})
 $$
 
 若启用 basis：
@@ -396,7 +396,7 @@ $$
 并设置：
 
 $$
-\mathrm{codec\_key}=\texttt{position\_sequence},\qquad f=20
+\mathrm{codec\_key}=\mathrm{position\_sequence},\qquad f=20
 $$
 
 它走 [HumanML3D/position fitting](humanml3d-263d-to-vrm.zh-CN.md) 中描述的 `PositionSequenceCodec` 逻辑，而不是本文的 axis-angle 逻辑。

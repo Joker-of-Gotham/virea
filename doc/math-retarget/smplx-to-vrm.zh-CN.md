@@ -5,7 +5,7 @@
 SMPL-X 路径和 SMPL-H 路径共享 direct local quaternion retarget，但输入是 $55$ joint fullpose，并额外映射 hands。数学主线是：
 
 $$
-\mathrm{SMPL\text{-}X\ fullpose}\in\mathbb{R}^{T\times165}
+\mathrm{SMPL{-}X\ fullpose}\in\mathbb{R}^{T\times165}
 \rightarrow
 Q^{55}\in\mathbb{R}^{T\times55\times4}
 \rightarrow
@@ -17,13 +17,13 @@ $$
 GRAB `.npz` 中：
 
 $$
-\mathrm{fullpose}=\mathrm{payload}[\texttt{body}].\mathrm{item}()[\texttt{params}][\texttt{fullpose}]
+\mathrm{fullpose}=\mathrm{payload}[\mathrm{body}].\mathrm{item}()[\mathrm{params}][\mathrm{fullpose}]
 \in\mathbb{R}^{T\times D}
 $$
 
 $$
 \mathrm{translation}=
-\mathrm{payload}[\texttt{body}].\mathrm{item}()[\texttt{params}][\texttt{transl}]
+\mathrm{payload}[\mathrm{body}].\mathrm{item}()[\mathrm{params}][\mathrm{transl}]
 \in\mathbb{R}^{T\times3}
 $$
 
@@ -38,7 +38,7 @@ fps：
 $$
 f=
 \begin{cases}
-\mathrm{payload}[\texttt{framerate}],&\mathrm{if\ present}\\
+\mathrm{payload}[\mathrm{framerate}],&\mathrm{if\ present}\\
 120,&\mathrm{otherwise}
 \end{cases}
 $$
@@ -46,7 +46,7 @@ $$
 metadata 显式写入：
 
 $$
-\mathrm{declared\_world\_basis}=\texttt{z\_up\_to\_y\_up}
+\mathrm{declared\_world\_basis}=\mathrm{z\_up\_to\_y\_up}
 $$
 
 ## 2. Motion-X adapter 读取
@@ -74,13 +74,13 @@ $$
 translation 单位保护逻辑为：
 
 $$
-\Delta=\operatorname{ptp}(\mathrm{translation}^{\mathrm{raw}},\mathrm{axis}=0)
+\Delta=ptp(\mathrm{translation}^{\mathrm{raw}},\mathrm{axis}=0)
 $$
 
 $$
 \eta=
 \begin{cases}
-0.01,&\max|\Delta|>20\ \mathrm{or}\ \operatorname{percentile}_{95}(|\mathrm{translation}^{\mathrm{raw}}|)>20\\
+0.01,&\max|\Delta|>20\ \mathrm{or}\ percentile_{95}(|\mathrm{translation}^{\mathrm{raw}}|)>20\\
 1.0,&\mathrm{otherwise}
 \end{cases}
 $$
@@ -98,7 +98,7 @@ $$
 metadata 显式写入：
 
 $$
-\mathrm{declared\_world\_basis}=\texttt{identity\_y\_up}
+\mathrm{declared\_world\_basis}=\mathrm{identity\_y\_up}
 $$
 
 ## 3. fullpose 到 55 个四元数
@@ -112,7 +112,7 @@ $$
 取前 $165$ 维：
 
 $$
-A=\operatorname{reshape}\left(\mathrm{fullpose}_{[:,0:165]},T,55,3\right)
+A=reshape\left(\mathrm{fullpose}_{[:,0:165]},T,55,3\right)
 $$
 
 axis-angle 到 quaternion：
@@ -144,19 +144,19 @@ q_t^{\mathrm{root,src}}=Q^{55}_{t,\mathrm{BODY\_INDEX}(\mathrm{hips})}
 $$
 
 $$
-q_t^{j,\mathrm{body,src}}=Q^{55}_{t,\mathrm{BODY\_INDEX}(j)},\qquad j\in\mathcal{B}\setminus\{\mathrm{hips}\}
+q_t^{j,\mathrm{body,src}}=Q^{55}_{t,\mathrm{BODY\_INDEX}(j)},\qquad j\in B\setminus\{\mathrm{hips}\}
 $$
 
 代码还先创建了 `core`：
 
 $$
-Q^{\mathcal{C}}_{\mathrm{raw}}[t,\mathrm{CORE\_INDEX}(j)]=Q^{55}_{t,\mathrm{BODY\_INDEX}(j)}
+Q^{C}_{\mathrm{raw}}[t,\mathrm{CORE\_INDEX}(j)]=Q^{55}_{t,\mathrm{BODY\_INDEX}(j)}
 $$
 
 但真正传给 `retarget_named_quats_to_vrm()` 的 body 输入是：
 
 $$
-\mathrm{local\_quats\_by\_name}=\{j\mapsto Q^{55}_{:, \mathrm{BODY\_INDEX}(j)}\mid j\in\mathcal{B},j\neq\mathrm{hips}\}
+\mathrm{local\_quats\_by\_name}=\{j\mapsto Q^{55}_{:, \mathrm{BODY\_INDEX}(j)}\mid j\in B,j\neq\mathrm{hips}\}
 $$
 
 ## 5. hand 映射
@@ -164,7 +164,7 @@ $$
 `SMPLX_HAND_INDEX` 定义从 SMPL-X fullpose index 到 canonical hand bone 的映射。记该映射为：
 
 $$
-\psi:\mathcal{H}_{\mathrm{mapped}}\rightarrow\{25,\ldots,54\}
+\psi:H_{\mathrm{mapped}}\rightarrow\{25,\ldots,54\}
 $$
 
 例如：
@@ -184,10 +184,10 @@ $$
 代码先初始化：
 
 $$
-Q_t^{k,\mathrm{hand,raw}}=[0,0,0,1],\qquad k\in\mathcal{H}
+Q_t^{k,\mathrm{hand,raw}}=[0,0,0,1],\qquad k\in H
 $$
 
-若 $\psi(k)<55$ 且 $k\in\mathcal{H}$：
+若 $\psi(k)<55$ 且 $k\in H$：
 
 $$
 Q_t^{k,\mathrm{hand,raw}}=Q^{55}_{t,\psi(k)}
@@ -196,7 +196,7 @@ $$
 然后传入：
 
 $$
-\mathrm{hand\_quats\_by\_name}=\{k\mapsto Q^{k,\mathrm{hand,raw}}\mid k\in\mathcal{H}\}
+\mathrm{hand\_quats\_by\_name}=\{k\mapsto Q^{k,\mathrm{hand,raw}}\mid k\in H\}
 $$
 
 ## 6. basis 选择函数
@@ -206,10 +206,10 @@ $$
 $$
 b=
 \begin{cases}
-\mathrm{metadata}[\texttt{declared\_world\_basis}],&\mathrm{if\ present}\\
-\mathrm{metadata}[\texttt{world\_basis}],&\mathrm{if\ present\ and\ string}\\
-\texttt{z\_up\_to\_y\_up},&\mathrm{dataset}=\texttt{grab}\\
-\texttt{identity\_y\_up},&\mathrm{otherwise}
+\mathrm{metadata}[\mathrm{declared\_world\_basis}],&\mathrm{if\ present}\\
+\mathrm{metadata}[\mathrm{world\_basis}],&\mathrm{if\ present\ and\ string}\\
+\mathrm{z\_up\_to\_y\_up},&\mathrm{dataset}=\mathrm{grab}\\
+\mathrm{identity\_y\_up},&\mathrm{otherwise}
 \end{cases}
 $$
 
@@ -240,7 +240,7 @@ $$
 SMPL-X 路径调用：
 
 $$
-\operatorname{retarget\_named\_quats\_to\_vrm}
+retarget\_named\_quats\_to\_vrm
 \left(
 \mathrm{translation},
 q^{\mathrm{root,src}},
@@ -255,19 +255,19 @@ $$
 当前代码中：
 
 $$
-o^{\mathrm{body,src}}=\texttt{DEFAULT\_REST\_OFFSETS}
+o^{\mathrm{body,src}}=\mathrm{DEFAULT\_REST\_OFFSETS}
 $$
 
 $$
-o^{\mathrm{hand,src}}=\texttt{DEFAULT\_REST\_OFFSETS}
+o^{\mathrm{hand,src}}=\mathrm{DEFAULT\_REST\_OFFSETS}
 $$
 
 scale：
 
 $$
 \lambda=
-\frac{\sum_{C\in\mathcal{K}}\sum_{j\in C}\|\bar{o}_j\|}
-{\sum_{C\in\mathcal{K}}\sum_{j\in C}\|o_j^{\mathrm{src}}\|}
+\frac{\sum_{C\in K}\sum_{j\in C}\|\bar{o}_j\|}
+{\sum_{C\in K}\sum_{j\in C}\|o_j^{\mathrm{src}}\|}
 $$
 
 root：
@@ -285,7 +285,7 @@ $$
 body correction：
 
 $$
-c_j^{\mathrm{body}}=\operatorname{Rot}(\bar{o}_{\chi(j)}\to o_{\chi(j)}^{\mathrm{body,src}})
+c_j^{\mathrm{body}}=Rot(\bar{o}_{\chi(j)}\to o_{\chi(j)}^{\mathrm{body,src}})
 $$
 
 body target local quaternion：
@@ -304,7 +304,7 @@ $$
 hand correction：
 
 $$
-c_k^{\mathrm{hand}}=\operatorname{Rot}(\bar{o}_{\chi(k)}\to o_{\chi(k)}^{\mathrm{hand,src}})
+c_k^{\mathrm{hand}}=Rot(\bar{o}_{\chi(k)}\to o_{\chi(k)}^{\mathrm{hand,src}})
 $$
 
 hand target local quaternion 使用 body 与 hand correction 合并后的父 correction：
@@ -329,33 +329,33 @@ $$
 打包：
 
 $$
-S=\operatorname{pack}
+S=pack
 \left(
 r^{\mathrm{vrm}},
 q^{\mathrm{root,target}},
-Q^{\mathcal{C},\mathrm{target}},
-Q^{\mathcal{H},\mathrm{target}}
+Q^{C,\mathrm{target}},
+Q^{H,\mathrm{target}}
 \right)
 $$
 
 target positions：
 
 $$
-P^{\mathrm{target}}=\operatorname{FK}(S,\bar{o})
+P^{\mathrm{target}}=FK(S,\bar{o})
 $$
 
 metadata：
 
 $$
-\mathrm{codec}=\texttt{smplx\_fullpose}
+\mathrm{codec}=\mathrm{smplx\_fullpose}
 $$
 
 $$
-\mathrm{source\_profile}=\texttt{smplx\_fullpose55}
+\mathrm{source\_profile}=\mathrm{smplx\_fullpose55}
 $$
 
 $$
-\mathrm{retarget\_mode}=\texttt{direct\_local\_quaternion\_retarget}
+\mathrm{retarget\_mode}=\mathrm{direct\_local\_quaternion\_retarget}
 $$
 
 ## 9. face、jaw、eyes、object 的边界
@@ -375,7 +375,7 @@ $$
 这些进入 `motion` 或 metadata/annotations，但不进入：
 
 $$
-S=[r,q^{\mathrm{root}},Q^{\mathcal{C}},Q^{\mathcal{H}}]
+S=[r,q^{\mathrm{root}},Q^{C},Q^{H}]
 $$
 
 即当前 VRM humanoid retarget 只覆盖 body + hands，不驱动 VRM expression、lookAt、jaw 或 object channel。
@@ -386,7 +386,7 @@ $$
 
 $$
 \hat{P}^{\mathrm{src}}=
-\operatorname{FK}
+FK
 \left(
 \lambda\mathrm{translation}-\lambda\mathrm{translation}_0,
 q^{\mathrm{root,src}},

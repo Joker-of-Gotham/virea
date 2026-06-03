@@ -7,13 +7,13 @@
 设帧数为 $T$。VIREA canonical skeleton 分成三组：
 
 - root bone: $\mathrm{hips}$。
-- body/core bones: $\mathcal{C}$，数量 $|\mathcal{C}|=21$，对应 `CORE_BONES`。
-- hand bones: $\mathcal{H}$，数量 $|\mathcal{H}|=30$，对应 `HAND_BONES`。
+- body/core bones: $C$，数量 $N_C=21$，对应 `CORE_BONES`。
+- hand bones: $H$，数量 $N_H=30$，对应 `HAND_BONES`。
 
 完整 FK 输出骨骼集合为：
 
 $$
-\mathcal{F}=\{\mathrm{hips}\}\cup\mathcal{C}\cup\mathcal{H},\qquad |\mathcal{F}|=52
+F=\{\mathrm{hips}\}\cup C\cup H,\qquad N_F=52
 $$
 
 父节点映射由 `CANONICAL_PARENT` 给出，记作 $\pi(j)$。目标 rest offset 由 `target_rest_offsets_map()` 给出，记作 $\bar{o}_j\in\mathbb{R}^3$。如果没有外部 VRM rest template，$\bar{o}_j$ 退化为 `DEFAULT_REST_OFFSETS`。
@@ -21,14 +21,14 @@ $$
 每一帧 canonical sequence 的维度由 `FRAME_DIM` 定义：
 
 $$
-D_{\mathrm{frame}}=3+4+4|\mathcal{C}|+4|\mathcal{H}|=3+4+84+120=211
+D_{\mathrm{frame}}=3+4+4N_C+4N_H=3+4+84+120=211
 $$
 
 第 $t$ 帧写作：
 
 $$
 s_t=\left[
-r_t,\ q_t^{\mathrm{root}},\ \{q_t^j\}_{j\in\mathcal{C}},\ \{q_t^k\}_{k\in\mathcal{H}}
+r_t,\ q_t^{\mathrm{root}},\ \{q_t^j\}_{j\in C},\ \{q_t^k\}_{k\in H}
 \right]\in\mathbb{R}^{211}
 $$
 
@@ -43,11 +43,11 @@ $$
 代码中的归一化 `normalize_quat_xyzw()` 是：
 
 $$
-\operatorname{norm}(q)=\sqrt{x^2+y^2+z^2+w^2}
+norm(q)=\sqrt{x^2+y^2+z^2+w^2}
 $$
 
 $$
-\widehat{q}=\frac{q}{\max(\operatorname{norm}(q),\epsilon)},\qquad \epsilon=10^{-8}
+\widehat{q}=\frac{q}{\max(norm(q),\epsilon)},\qquad \epsilon=10^{-8}
 $$
 
 四元数乘法 `quat_multiply_xyzw(q_1,q_2)` 先归一化两个输入。设 $q_1=[x_1,y_1,z_1,w_1]$，$q_2=[x_2,y_2,z_2,w_2]$，则：
@@ -145,10 +145,10 @@ b_3^\top
 \end{bmatrix}
 $$
 
-然后 `matrix_to_quat_xyzw()` 将 $R_{\mathrm{rows}}$ 转为 $q=[x,y,z,w]$。该函数按矩阵 trace 分支实现稳定转换；若 $\operatorname{tr}(R)>0$：
+然后 `matrix_to_quat_xyzw()` 将 $R_{\mathrm{rows}}$ 转为 $q=[x,y,z,w]$。该函数按矩阵 trace 分支实现稳定转换；若 $tr(R)>0$：
 
 $$
-\alpha=2\sqrt{\operatorname{tr}(R)+1}
+\alpha=2\sqrt{tr(R)+1}
 $$
 
 $$
@@ -202,10 +202,10 @@ $$
 
 $$
 S=
-\operatorname{concat}\left(
+concat\left(
 R,\ Q^{\mathrm{root}},\
-\operatorname{reshape}(Q^{\mathcal{C}},T,4|\mathcal{C}|),\
-\operatorname{reshape}(Q^{\mathcal{H}},T,4|\mathcal{H}|)
+reshape(Q^{C},T,4N_C),\
+reshape(Q^{H},T,4N_H)
 \right)
 $$
 
@@ -214,8 +214,8 @@ $$
 $$
 R\in\mathbb{R}^{T\times3},\quad
 Q^{\mathrm{root}}\in\mathbb{R}^{T\times4},\quad
-Q^{\mathcal{C}}\in\mathbb{R}^{T\times21\times4},\quad
-Q^{\mathcal{H}}\in\mathbb{R}^{T\times30\times4}
+Q^{C}\in\mathbb{R}^{T\times21\times4},\quad
+Q^{H}\in\mathbb{R}^{T\times30\times4}
 $$
 
 缺省旋转由 `identity_quats()` 给出：
@@ -231,11 +231,11 @@ R=S[:,0:3],\qquad Q^{\mathrm{root}}=S[:,3:7]
 $$
 
 $$
-Q^{\mathcal{C}}=\operatorname{reshape}(S[:,7:91],T,21,4)
+Q^{C}=reshape(S[:,7:91],T,21,4)
 $$
 
 $$
-Q^{\mathcal{H}}=\operatorname{reshape}(S[:,91:211],T,30,4)
+Q^{H}=reshape(S[:,91:211],T,30,4)
 $$
 
 ## 7. 前向运动学 FK
@@ -261,7 +261,7 @@ $$
 `forward_kinematics_from_sequence()` 先解包 $S$，再把每个 canonical bone 的局部四元数放入 `local_quats`，最后用 `target_rest_offsets_map()` 计算：
 
 $$
-P^{\mathrm{target}}=\operatorname{FK}(S,\bar{o})
+P^{\mathrm{target}}=FK(S,\bar{o})
 $$
 
 这就是 processed/after preview 和 VRM target positions 的来源。
@@ -314,14 +314,14 @@ $$
 如果没有显式 basis，`infer_clip_world_basis()` 从 source positions 估计。它先计算上身和下身中心：
 
 $$
-u_t=\frac{1}{|\mathcal{U}|}\sum_{j\in\mathcal{U}}P_t(j),\qquad
-\ell_t=\frac{1}{|\mathcal{L}|}\sum_{j\in\mathcal{L}}P_t(j)
+u_t=\frac{1}{N_U}\sum_{j\in U}P_t(j),\qquad
+\ell_t=\frac{1}{N_L}\sum_{j\in L}P_t(j)
 $$
 
-其中 $\mathcal{U}=\{\mathrm{head},\mathrm{neck},\mathrm{upperChest},\mathrm{chest}\}$，$\mathcal{L}=\{\mathrm{leftFoot},\mathrm{rightFoot},\mathrm{leftToes},\mathrm{rightToes}\}$。锚帧为：
+其中 $U=\{\mathrm{head},\mathrm{neck},\mathrm{upperChest},\mathrm{chest}\}$，$N_U=4$；$L=\{\mathrm{leftFoot},\mathrm{rightFoot},\mathrm{leftToes},\mathrm{rightToes}\}$，$N_L=4$。锚帧为：
 
 $$
-t^\*=\arg\max_t \|u_t-\ell_t\|_\infty
+t^\*=argmax_t \|u_t-\ell_t\|_\infty
 $$
 
 up axis 取 $u_{t^\*}-\ell_{t^\*}$ 中绝对值最大的坐标轴。left axis 来自左右骨骼对在去除 up 分量后的平均；forward axis 优先来自脚趾方向，其次 root trajectory，再其次 torso。最后矩阵是：
@@ -343,12 +343,12 @@ $$
 
 ### 9.1 从 rest offsets 估计
 
-`_target_scale_from_rest_offsets(source_rest_offsets)` 用于 direct quaternion retarget。稳定链集合为 `STABLE_SCALE_CHAINS`，记为 $\mathcal{K}$。每条链 $C\in\mathcal{K}$ 是若干骨骼名的序列。source rest offset 为 $o_j^{\mathrm{src}}$，target rest offset 为 $\bar{o}_j$：
+`_target_scale_from_rest_offsets(source_rest_offsets)` 用于 direct quaternion retarget。稳定链集合为 `STABLE_SCALE_CHAINS`，记为 $K$。每条链 $C\in K$ 是若干骨骼名的序列。source rest offset 为 $o_j^{\mathrm{src}}$，target rest offset 为 $\bar{o}_j$：
 
 $$
 \lambda_{\mathrm{rest}}=
-\frac{\sum_{C\in\mathcal{K}}\sum_{j\in C}\|\bar{o}_j\|_2}
-{\sum_{C\in\mathcal{K}}\sum_{j\in C}\|o_j^{\mathrm{src}}\|_2}
+\frac{\sum_{C\in K}\sum_{j\in C}\|\bar{o}_j\|_2}
+{\sum_{C\in K}\sum_{j\in C}\|o_j^{\mathrm{src}}\|_2}
 $$
 
 如果分母小于 $10^{-6}$，代码返回 $1$。
@@ -359,8 +359,8 @@ $$
 
 $$
 \lambda_{\mathrm{pos}}=
-\frac{\sum_{C\in\mathcal{K}}\sum_{j\in C}\|\bar{o}_j\|_2}
-{\sum_{C\in\mathcal{K}}\sum_{j\in C}\|P_0(j)-P_0(\pi_C(j))\|_2}
+\frac{\sum_{C\in K}\sum_{j\in C}\|\bar{o}_j\|_2}
+{\sum_{C\in K}\sum_{j\in C}\|P_0(j)-P_0(\pi_C(j))\|_2}
 $$
 
 其中 $\pi_C(j)$ 表示该稳定链内代码正在使用的 parent。分母过小时返回 $1$。
@@ -384,7 +384,7 @@ $$
 correction 定义为：
 
 $$
-c_j=\operatorname{Rot}(v_j\to u_j)
+c_j=Rot(v_j\to u_j)
 $$
 
 注意方向是 target offset 到 source offset，与代码 `quat_from_two_vectors_xyzw(target_vec, source_vec)` 一致。
@@ -430,8 +430,8 @@ hand bones 使用相同公式，只是 correction 字典为 body correction 与 
 $$
 r_t^{\mathrm{src}}\in\mathbb{R}^3,\quad
 q_t^{\mathrm{root,src}}\in\mathbb{R}^4,\quad
-\{q_t^{j,\mathrm{src}}\}_{j\in\mathcal{C}},\quad
-\{q_t^{k,\mathrm{src}}\}_{k\in\mathcal{H}}\ \mathrm{optional}
+\{q_t^{j,\mathrm{src}}\}_{j\in C},\quad
+\{q_t^{k,\mathrm{src}}\}_{k\in H}\ \mathrm{optional}
 $$
 
 第一步缩放并归零 root：
@@ -447,7 +447,7 @@ $$
 第二步用 source rest offsets 计算 source positions：
 
 $$
-P_t^{\mathrm{src}}=\operatorname{FK}\left(r_t^1,q_t^{\mathrm{root,src}},\{q_t^{j,\mathrm{src}}\},o^{\mathrm{src}}\right)
+P_t^{\mathrm{src}}=FK\left(r_t^1,q_t^{\mathrm{root,src}},\{q_t^{j,\mathrm{src}}\},o^{\mathrm{src}}\right)
 $$
 
 第三步 basis 归一：
@@ -462,19 +462,19 @@ $$
 第五步打包：
 
 $$
-S=\operatorname{pack}\left(r^2,q^{\mathrm{root,target}},Q^{\mathcal{C},\mathrm{target}},Q^{\mathcal{H},\mathrm{target}}\right)
+S=pack\left(r^2,q^{\mathrm{root,target}},Q^{C,\mathrm{target}},Q^{H,\mathrm{target}}\right)
 $$
 
 第六步用 target rest offsets 做 FK：
 
 $$
-P^{\mathrm{target}}=\operatorname{FK}(S,\bar{o})
+P^{\mathrm{target}}=FK(S,\bar{o})
 $$
 
 函数返回的 mode 固定为：
 
 $$
-\mathrm{mode}=\texttt{direct\_local\_quaternion\_retarget}
+\mathrm{mode}=\mathrm{direct\_local\_quaternion\_retarget}
 $$
 
 ## 12. position fitting retarget
@@ -482,7 +482,7 @@ $$
 `fit_positions_to_vrm()` 用于 HumanML3D、SuSu positions 以及 SuSu global-rotation 先构造出的 positions。输入是按 `BODY_BONES` 对齐的：
 
 $$
-X\in\mathbb{R}^{T\times|\mathcal{B}|\times3},\qquad \mathcal{B}=\texttt{BODY\_BONES},\quad |\mathcal{B}|=22
+X\in\mathbb{R}^{T\times N_B\times3},\qquad B=\mathrm{BODY\_BONES},\quad N_B=22
 $$
 
 第一步 basis：
@@ -522,12 +522,12 @@ $$
 当 $\|d_t^{\mathrm{spine}}\|\ge 10^{-6}$：
 
 $$
-q_t^{\mathrm{root}}=\operatorname{Rot}(\bar{o}_{\mathrm{spine}}\to d_t^{\mathrm{spine}})
+q_t^{\mathrm{root}}=Rot(\bar{o}_{\mathrm{spine}}\to d_t^{\mathrm{spine}})
 $$
 
 否则保持单位四元数。
 
-第六步逐骨骼拟合。对每个 $j\in\mathcal{C}$，取 primary child $\chi(j)$。如果 $\chi(j)$ 不在 body positions 中，则代码把该骨骼 world rotation 设成父节点 world rotation，并不写非单位局部旋转。若 child 有效：
+第六步逐骨骼拟合。对每个 $j\in C$，取 primary child $\chi(j)$。如果 $\chi(j)$ 不在 body positions 中，则代码把该骨骼 world rotation 设成父节点 world rotation，并不写非单位局部旋转。若 child 有效：
 
 $$
 d_t^{\mathrm{world}}=Y_t(\chi(j))-Y_t(j)
@@ -542,7 +542,7 @@ $$
 局部旋转：
 
 $$
-q_t^j=\operatorname{Rot}(\bar{o}_{\chi(j)}\to d_t^{\mathrm{local}})
+q_t^j=Rot(\bar{o}_{\chi(j)}\to d_t^{\mathrm{local}})
 $$
 
 世界旋转递推：
@@ -554,14 +554,13 @@ $$
 最终打包：
 
 $$
-S=\operatorname{pack}(r,q^{\mathrm{root}},Q^{\mathcal{C}},I^{\mathcal{H}})
+S=pack(r,q^{\mathrm{root}},Q^{C},I^{H})
 $$
 
 返回 mode：
 
 $$
-\mathrm{mode}=\texttt{position\_fit\_to\_vrm}
+\mathrm{mode}=\mathrm{position\_fit\_to\_vrm}
 $$
 
 这条路径没有求解 twist，因为单 child direction 对绕骨骼轴的旋转不可观测。代码选择的是确定性方向拟合，而不是 IK 优化。
-

@@ -28,19 +28,19 @@ $$
 读取：
 
 $$
-\mathrm{path}=\mathrm{raw\_root}/\texttt{data}/(\mathrm{shard}+\texttt{.parquet})
+\mathrm{path}=\mathrm{raw\_root}/\mathrm{data}/(\mathrm{shard}+\mathrm{.parquet})
 $$
 
 row 中：
 
 $$
-M=\mathrm{row}[\texttt{motion}]\in\mathbb{R}^{T\times263}
+M=\mathrm{row}[\mathrm{motion}]\in\mathbb{R}^{T\times263}
 $$
 
 文本：
 
 $$
-c=\mathrm{row}[\texttt{caption}]
+c=\mathrm{row}[\mathrm{caption}]
 $$
 
 metadata：
@@ -48,7 +48,7 @@ metadata：
 $$
 \mathrm{num\_frames}=
 \begin{cases}
-\mathrm{meta\_data}[\texttt{num\_frames}],&\mathrm{if\ present}\\
+\mathrm{meta\_data}[\mathrm{num\_frames}],&\mathrm{if\ present}\\
 T,&\mathrm{otherwise}
 \end{cases}
 $$
@@ -72,27 +72,27 @@ $$
 代码没有把 $M$ 切成 axis-angle，也没有将其解释为 SMPL pose。当前 `HumanML3D263Codec._decode_positions()` 的输入输出是：
 
 $$
-\operatorname{decode}:\mathbb{R}^{T\times263}\rightarrow
-\left(X\in\mathbb{R}^{T\times J\times3},\ \mathcal{N},\ \mathrm{meta}\right)
+decode:\mathbb{R}^{T\times263}\rightarrow
+\left(X\in\mathbb{R}^{T\times J\times3},\ N,\ \mathrm{meta}\right)
 $$
 
-其中 $X$ 是关节位置，$\mathcal{N}$ 是 joint names。
+其中 $X$ 是关节位置，$N$ 是 joint names。
 
 ## 3. 优先解码路径
 
 若 `VIREA_TMR_SRC` 存在并可导入：
 
 $$
-X=\operatorname{guofeats\_to\_joints}(M)
+X=guofeats\_to\_joints(M)
 $$
 
 代码实际调用：
 
 $$
 X=
-\operatorname{cpu}\left(
-\operatorname{detach}\left(
-\operatorname{guofeats\_to\_joints}(\operatorname{torch.tensor}(M,\mathrm{float32}))
+cpu\left(
+detach\left(
+guofeats\_to\_joints(torch.tensor(M,\mathrm{float32}))
 \right)
 \right)
 $$
@@ -106,13 +106,13 @@ $$
 joint names：
 
 $$
-\mathcal{N}=\mathrm{JOINT\_NAMES}[\texttt{guoh3djoints}]
+N=\mathrm{JOINT\_NAMES}[\mathrm{guoh3djoints}]
 $$
 
 metadata：
 
 $$
-\mathrm{humanml\_decoder}=\texttt{guofeats\_to\_joints}
+\mathrm{humanml\_decoder}=\mathrm{guofeats\_to\_joints}
 $$
 
 ## 4. fallback 解码路径
@@ -145,26 +145,26 @@ $$
 然后：
 
 $$
-S_{\mathrm{fallback}}=\operatorname{pack}(r)
+S_{\mathrm{fallback}}=pack(r)
 $$
 
 其中 root rotation、core、hand 都是单位四元数。fallback positions：
 
 $$
 X_{\mathrm{fallback}}=
-\operatorname{FK}(S_{\mathrm{fallback}},\bar{o})_{[:,0:22]}
+FK(S_{\mathrm{fallback}},\bar{o})_{[:,0:22]}
 $$
 
 names：
 
 $$
-\mathcal{N}=\mathrm{FK\_BONES}_{0:22}
+N=\mathrm{FK\_BONES}_{0:22}
 $$
 
 metadata：
 
 $$
-\mathrm{humanml\_decoder}=\texttt{fallback\_rest\_pose}
+\mathrm{humanml\_decoder}=\mathrm{fallback\_rest\_pose}
 $$
 
 $$
@@ -212,7 +212,7 @@ $$
 $$
 m_i=
 \begin{cases}
-g(n_i),&n_i\in\operatorname{dom}(g)\\
+g(n_i),&n_i\in dom(g)\\
 n_i,&\mathrm{otherwise}
 \end{cases}
 $$
@@ -220,19 +220,19 @@ $$
 若 $m_i\in\mathrm{FK\_BONES}$ 且之前未出现，则加入 mapped set：
 
 $$
-\mathcal{M}=\{m_i\}
+M=\{m_i\}
 $$
 
 positions 收集为：
 
 $$
-Y_{:,k,:}=X_{:,i_k,:},\qquad m_{i_k}\in\mathcal{M}
+Y_{:,k,:}=X_{:,i_k,:},\qquad m_{i_k}\in M
 $$
 
 若没有任何 mapped positions：
 
 $$
-\mathcal{M}=[\mathrm{hips}],\qquad Y\in\mathbb{R}^{T\times1\times3},\quad Y_{t,0}=[0,0,0]
+M=[\mathrm{hips}],\qquad Y\in\mathbb{R}^{T\times1\times3},\quad Y_{t,0}=[0,0,0]
 $$
 
 ## 6. BODY_BONES 对齐
@@ -249,12 +249,12 @@ $$
 B_{\mathrm{pos},t,j}=[0,0,0]
 $$
 
-对每个 body bone $b\in\mathrm{BODY\_BONES}$，若 $b\in\mathcal{M}$：
+对每个 body bone $b\in\mathrm{BODY\_BONES}$，若 $b\in M$：
 
 $$
 B_{\mathrm{pos},t,\mathrm{BODY\_INDEX}(b)}
 =
-Y_{t,\mathrm{index}_{\mathcal{M}}(b)}
+Y_{t,\mathrm{index}_{M}(b)}
 $$
 
 未映射骨骼保持零。这一点很重要：position fitting 会尝试拟合存在的 primary child，缺失骨骼会退化为单位旋转或父旋转继承。
@@ -264,7 +264,7 @@ $$
 `HumanML3D263Codec` 继承 `PositionSequenceCodec`，默认：
 
 $$
-\mathrm{world\_basis}=\texttt{z\_up\_to\_y\_up}
+\mathrm{world\_basis}=\mathrm{z\_up\_to\_y\_up}
 $$
 
 因此：
@@ -290,8 +290,8 @@ scale：
 
 $$
 \lambda=
-\frac{\sum_{C\in\mathcal{K}}\sum_{j\in C}\|\bar{o}_j\|}
-{\sum_{C\in\mathcal{K}}\sum_{j\in C}\|X'_0(j)-X'_0(\pi_C(j))\|}
+\frac{\sum_{C\in K}\sum_{j\in C}\|\bar{o}_j\|}
+{\sum_{C\in K}\sum_{j\in C}\|X'_0(j)-X'_0(\pi_C(j))\|}
 $$
 
 positions 缩放：
@@ -335,7 +335,7 @@ $$
 若 $\|d_t^{\mathrm{spine}}\|\ge10^{-6}$：
 
 $$
-q_t^{\mathrm{root}}=\operatorname{Rot}(\bar{o}_{\mathrm{spine}}\to d_t^{\mathrm{spine}})
+q_t^{\mathrm{root}}=Rot(\bar{o}_{\mathrm{spine}}\to d_t^{\mathrm{spine}})
 $$
 
 否则：
@@ -346,7 +346,7 @@ $$
 
 ## 10. core bones 的 direction fitting
 
-对每个 $j\in\mathcal{C}$，取 primary child：
+对每个 $j\in C$，取 primary child：
 
 $$
 \chi(j)=\mathrm{PRIMARY\_CHILD}[j]
@@ -386,7 +386,7 @@ $$
 局部旋转：
 
 $$
-q_t^j=\operatorname{Rot}(\bar{o}_{\chi(j)}\to d_t^{\mathrm{local}})
+q_t^j=Rot(\bar{o}_{\chi(j)}\to d_t^{\mathrm{local}})
 $$
 
 world rotation 递推：
@@ -400,25 +400,25 @@ $$
 HumanML3D/position sequence 当前没有 hand rotations：
 
 $$
-q_t^{k,\mathrm{hand}}=[0,0,0,1],\qquad k\in\mathcal{H}
+q_t^{k,\mathrm{hand}}=[0,0,0,1],\qquad k\in H
 $$
 
 打包：
 
 $$
-S=\operatorname{pack}(r,q^{\mathrm{root}},\{q^j\}_{j\in\mathcal{C}},I^{\mathcal{H}})
+S=pack(r,q^{\mathrm{root}},\{q^j\}_{j\in C},I^{H})
 $$
 
 target positions：
 
 $$
-P^{\mathrm{target}}=\operatorname{FK}(S,\bar{o})
+P^{\mathrm{target}}=FK(S,\bar{o})
 $$
 
 metadata：
 
 $$
-\mathrm{position\_to\_rotation}=\texttt{position\_fit\_to\_vrm}
+\mathrm{position\_to\_rotation}=\mathrm{position\_fit\_to\_vrm}
 $$
 
 $$
@@ -426,7 +426,7 @@ $$
 $$
 
 $$
-\mathrm{native\_joint\_names}=\mathcal{N}
+\mathrm{native\_joint\_names}=N
 $$
 
 ## 12. source preview
@@ -434,7 +434,7 @@ $$
 `HumanML3D263Codec.extract_source()` 同样先 decode：
 
 $$
-X,\mathcal{N},\mathrm{meta}=\operatorname{decode}(M)
+X,N,\mathrm{meta}=decode(M)
 $$
 
 然后将 names 映射到 canonical names：
@@ -446,7 +446,7 @@ $$
 生成 body positions：
 
 $$
-B_{\mathrm{pos}}=\operatorname{body\_positions\_from\_fk\_positions}(X,\tilde{\mathcal{N}})
+B_{\mathrm{pos}}=body\_positions\_from\_fk\_positions(X,\tilde{N})
 $$
 
 再调用 `source_positions_normalized()`：
@@ -472,7 +472,7 @@ AMASS adapter 对 `humanact12/*.npy` 设置：
 
 $$
 \mathrm{positions}\in\mathbb{R}^{T\times J\times3},\qquad
-\mathrm{codec\_key}=\texttt{position\_sequence},\qquad f=20
+\mathrm{codec\_key}=\mathrm{position\_sequence},\qquad f=20
 $$
 
 其数学路径从本文第 $5$ 节开始，不经过 HumanML3D 263D decode：
@@ -481,6 +481,6 @@ $$
 \mathrm{positions}\rightarrow
 \mathrm{joint\ name\ mapping}\rightarrow
 \mathrm{body\ positions}\rightarrow
-\operatorname{fit\_positions\_to\_vrm}
+fit\_positions\_to\_vrm
 $$
 

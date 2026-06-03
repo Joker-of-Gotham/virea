@@ -79,7 +79,7 @@ $$
 rest correction：
 
 $$
-c_j=\operatorname{Rot}(\bar{o}_{\chi(j)}\to o_{\chi(j)}^{\mathrm{src}})
+c_j=Rot(\bar{o}_{\chi(j)}\to o_{\chi(j)}^{\mathrm{src}})
 $$
 
 $$
@@ -91,7 +91,7 @@ position fitting：
 
 $$
 q_t^j=
-\operatorname{Rot}
+Rot
 \left(
 \bar{o}_{\chi(j)}
 \to
@@ -102,11 +102,11 @@ $$
 SuSu 当前输出边界：
 
 $$
-S_{\mathrm{SuSu}}=\operatorname{fit\_positions\_to\_vrm}(\cdot)
+S_{\mathrm{SuSu}}=fit\_positions\_to\_vrm(\cdot)
 $$
 
 $$
-Q^{\mathcal{H},\mathrm{output}}=I^{\mathcal{H}}
+Q^{H,\mathrm{output}}=I^{H}
 $$
 
 ## 禁止出现的错误

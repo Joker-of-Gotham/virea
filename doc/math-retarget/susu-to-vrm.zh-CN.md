@@ -9,7 +9,7 @@ $$
 \rightarrow
 \mathrm{BODY\_BONES\ positions}
 \rightarrow
-\operatorname{fit\_positions\_to\_vrm}
+fit\_positions\_to\_vrm
 \rightarrow
 \mathrm{VRM\ body\ sequence}
 $$
@@ -17,7 +17,7 @@ $$
 代码确实会把 SuSu body/hands 的 6D rotation 转为 global quaternions，并计算 global-to-local quaternions；但当前 `to_canonical()` 最终返回的是 `fit_positions_to_vrm()` 的 sequence，手部局部四元数没有写入最终 output sequence。也就是说：
 
 $$
-Q^{\mathcal{H},\mathrm{output}}=I^{\mathcal{H}}
+Q^{H,\mathrm{output}}=I^{H}
 $$
 
 除非未来代码改成把 `hand` 合并进 `retarget["sequence"]`。
@@ -27,25 +27,25 @@ $$
 motion 文件：
 
 $$
-\mathrm{path}=\mathrm{raw\_root}/\texttt{motion\_data}/(\mathrm{sample\_id}+\texttt{.npy})
+\mathrm{path}=\mathrm{raw\_root}/\mathrm{motion\_data}/(\mathrm{sample\_id}+\mathrm{.npy})
 $$
 
 加载后要求是 dict。代码只保留键集合：
 
 $$
-\mathcal{K}_{\mathrm{motion}}=\{\texttt{body},\texttt{left},\texttt{right},\texttt{positions}\}
+K_{\mathrm{motion}}=\{\mathrm{body},\mathrm{left},\mathrm{right},\mathrm{positions}\}
 $$
 
 每个存在的值转为 `float32`：
 
 $$
-M_k=\operatorname{float32}(\mathrm{data}[k]),\qquad k\in\mathcal{K}_{\mathrm{motion}}
+M_k=float32(\mathrm{data}[k]),\qquad k\in K_{\mathrm{motion}}
 $$
 
 若存在 `body` 且 $T>1$，做 frozen 检查：
 
 $$
-\max_d \operatorname{std}_t(\mathrm{body}_{t,d}) < 10^{-6}
+\max_d std_t(\mathrm{body}_{t,d}) < 10^{-6}
 \Rightarrow \mathrm{ValueError}
 $$
 
@@ -58,15 +58,15 @@ $$
 face/audio/text：
 
 $$
-\mathrm{face}\leftarrow \mathrm{arkit\_data}/(\mathrm{sample\_id}+\texttt{.npy})
+\mathrm{face}\leftarrow \mathrm{arkit\_data}/(\mathrm{sample\_id}+\mathrm{.npy})
 $$
 
 $$
-\mathrm{audio}\leftarrow \mathrm{wav\_data}/(\mathrm{sample\_id}+\texttt{.wav})
+\mathrm{audio}\leftarrow \mathrm{wav\_data}/(\mathrm{sample\_id}+\mathrm{.wav})
 $$
 
 $$
-\mathrm{text}\leftarrow \mathrm{text\_data}/\texttt{motion2text.json}
+\mathrm{text}\leftarrow \mathrm{text\_data}/\mathrm{motion2text.json}
 $$
 
 这些进入 motion metadata 或 annotations，不进入当前 body retarget 的数学输出。
@@ -76,28 +76,28 @@ $$
 adapter 的 source format/codec key：
 
 $$
-\mathrm{sample\_id}\ \mathrm{starts\ with}\ \texttt{fbx\_to\_json\_data\_susu\_retarget\_maya/}
+\mathrm{sample\_id}\ \mathrm{starts\ with}\ \mathrm{fbx\_to\_json\_data\_susu\_retarget\_maya/}
 \Rightarrow
 \begin{cases}
-\mathrm{source\_format}=\texttt{susu\_retarget\_maya\_6d\_body\_hands\_m\_npy}\\
-\mathrm{codec\_key}=\texttt{susu\_retarget\_maya\_6d\_body\_hands}
+\mathrm{source\_format}=\mathrm{susu\_retarget\_maya\_6d\_body\_hands\_m\_npy}\\
+\mathrm{codec\_key}=\mathrm{susu\_retarget\_maya\_6d\_body\_hands}
 \end{cases}
 $$
 
 $$
-\mathrm{sample\_id}\ \mathrm{starts\ with}\ \texttt{fbx\_to\_json\_data\_susu\_chonglu/}
-\ \mathrm{or}\ \texttt{positions}\in M
+\mathrm{sample\_id}\ \mathrm{starts\ with}\ \mathrm{fbx\_to\_json\_data\_susu\_chonglu/}
+\ \mathrm{or}\ \mathrm{positions}\in M
 \Rightarrow
 \begin{cases}
-\mathrm{source\_format}=\texttt{susu\_chonglu\_6d\_body\_hands\_cm\_positions\_npy}\\
-\mathrm{codec\_key}=\texttt{susu\_chonglu\_6d\_body\_hands\_cm}
+\mathrm{source\_format}=\mathrm{susu\_chonglu\_6d\_body\_hands\_cm\_positions\_npy}\\
+\mathrm{codec\_key}=\mathrm{susu\_chonglu\_6d\_body\_hands\_cm}
 \end{cases}
 $$
 
 否则：
 
 $$
-\mathrm{codec\_key}=\texttt{susu\_6d\_body\_hands}
+\mathrm{codec\_key}=\mathrm{susu\_6d\_body\_hands}
 $$
 
 codec 内部 `_select_profile()` 再做一次 profile 决策。若构造器传入固定 profile，则直接使用。否则：
@@ -131,7 +131,7 @@ retarget-maya：
 $$
 \alpha_{\mathrm{pos}}=0.01,\qquad
 \alpha_{\mathrm{root}}=1.0,\qquad
-b_{\mathrm{pos}}=\texttt{neg\_z\_up\_to\_y\_up}
+b_{\mathrm{pos}}=\mathrm{neg\_z\_up\_to\_y\_up}
 $$
 
 chonglu：
@@ -139,7 +139,7 @@ chonglu：
 $$
 \alpha_{\mathrm{pos}}=0.01,\qquad
 \alpha_{\mathrm{root}}=0.01,\qquad
-b_{\mathrm{pos}}=\texttt{identity\_y\_up}
+b_{\mathrm{pos}}=\mathrm{identity\_y\_up}
 $$
 
 ## 4. root translation
@@ -164,7 +164,7 @@ $$
 若 profile 是 retarget-maya，代码做自动单位判断：
 
 $$
-h_{\mathrm{med}}=\operatorname{median}_t(|u_{t,y}|)
+h_{\mathrm{med}}=median_t(|u_{t,y}|)
 $$
 
 $$
@@ -184,9 +184,9 @@ unit metadata：
 $$
 \mathrm{unit}=
 \begin{cases}
-\texttt{cm},&\gamma=0.01\ \mathrm{by\ retarget\text{-}maya\ auto\ rule}\\
-\texttt{m},&\gamma=1.0\ \mathrm{by\ retarget\text{-}maya\ auto\ rule}\\
-\texttt{profile},&\mathrm{non\ retarget\text{-}maya}
+\mathrm{cm},&\gamma=0.01\ \mathrm{by\ retarget{-}maya\ auto\ rule}\\
+\mathrm{m},&\gamma=1.0\ \mathrm{by\ retarget{-}maya\ auto\ rule}\\
+\mathrm{profile},&\mathrm{non\ retarget{-}maya}
 \end{cases}
 $$
 
@@ -208,7 +208,7 @@ body rotation 切片：
 
 $$
 D^{\mathrm{body}}=
-\operatorname{reshape}(\mathrm{body}_{[:,3:]},T,25,6)
+reshape(\mathrm{body}_{[:,3:]},T,25,6)
 $$
 
 每个 6D 向量 $d$ 通过 `sixd_rows_to_quat_xyzw()`：
@@ -243,7 +243,7 @@ $$
 quaternion：
 
 $$
-q(d)=\operatorname{matrix\_to\_quat\_xyzw}(R(d))
+q(d)=matrix\_to\_quat\_xyzw(R(d))
 $$
 
 得到：
@@ -257,7 +257,7 @@ $$
 source body names：
 
 $$
-\mathcal{S}_{\mathrm{body}}=[
+S_{\mathrm{body}}=[
 \mathrm{pelvis},\mathrm{thigh\_r},\mathrm{calf\_r},\ldots,\mathrm{hand\_r}
 ]
 $$
@@ -315,7 +315,7 @@ $$
 这些值被写入临时 `core`：
 
 $$
-Q_t^{\mathcal{C},\mathrm{temp}}[\mathrm{CORE\_INDEX}(j)]=q_t^{j,\mathrm{local}}
+Q_t^{C,\mathrm{temp}}[\mathrm{CORE\_INDEX}(j)]=q_t^{j,\mathrm{local}}
 $$
 
 但当前 `to_canonical()` 后面没有把这个 `core` 传入最终 `pack_sequence()`；最终 sequence 来自 `fit_positions_to_vrm()`。
@@ -326,7 +326,7 @@ $$
 
 $$
 D^{\mathrm{hand}}=
-\operatorname{reshape}(\mathrm{motion}[\mathrm{side}],T,20,6)
+reshape(\mathrm{motion}[\mathrm{side}],T,20,6)
 $$
 
 每个 6D 重建为 global quaternion：
@@ -375,9 +375,9 @@ $$
 `_positions_from_available_data()` 条件是：
 
 $$
-\texttt{positions}\in\mathrm{clip.motion}
+\mathrm{positions}\in\mathrm{clip.motion}
 \quad\mathrm{and}\quad
-\operatorname{ndim}(\mathrm{positions})=3
+ndim(\mathrm{positions})=3
 $$
 
 若成立：
@@ -402,14 +402,14 @@ $$
 
 $$
 B_{\mathrm{pos}}=
-\operatorname{body\_positions\_from\_fk\_positions}(Y,\mathcal{M})
+body\_positions\_from\_fk\_positions(Y,M)
 \in\mathbb{R}^{T\times22\times3}
 $$
 
 调用：
 
 $$
-\operatorname{fit\_positions\_to\_vrm}
+fit\_positions\_to\_vrm
 \left(
 B_{\mathrm{pos}},
 \mathrm{world\_basis}=b_{\mathrm{pos}}
@@ -421,8 +421,8 @@ $$
 $$
 b_{\mathrm{pos}}=
 \begin{cases}
-\texttt{neg\_z\_up\_to\_y\_up},&\mathrm{retarget\text{-}maya}\\
-\texttt{identity\_y\_up},&\mathrm{chonglu}
+\mathrm{neg\_z\_up\_to\_y\_up},&\mathrm{retarget{-}maya}\\
+\mathrm{identity\_y\_up},&\mathrm{chonglu}
 \end{cases}
 $$
 
@@ -441,14 +441,14 @@ r_t=X''_t(\mathrm{hips})-X''_0(\mathrm{hips})
 $$
 
 $$
-q_t^{\mathrm{root}}=\operatorname{Rot}(\bar{o}_{\mathrm{spine}}\to X''_t(\mathrm{spine})-X''_t(\mathrm{hips}))
+q_t^{\mathrm{root}}=Rot(\bar{o}_{\mathrm{spine}}\to X''_t(\mathrm{spine})-X''_t(\mathrm{hips}))
 $$
 
 对 core bone：
 
 $$
 q_t^j=
-\operatorname{Rot}
+Rot
 \left(
 \bar{o}_{\chi(j)}
 \to
@@ -459,7 +459,7 @@ $$
 最终：
 
 $$
-S=\operatorname{pack}(r,q^{\mathrm{root}},Q^{\mathcal{C}},I^{\mathcal{H}})
+S=pack(r,q^{\mathrm{root}},Q^{C},I^{H})
 $$
 
 ## 10. positions 不可用时的路径
@@ -467,11 +467,11 @@ $$
 如果没有 `positions`，代码用 global body rotations 构造 positions：
 
 $$
-X=\operatorname{positions\_from\_global\_rotations}
+X=positions\_from\_global\_rotations
 \left(
 r,
 Q^{\mathrm{body,global}},
-\mathrm{fixed\_aim\_axes}=\varnothing
+\mathrm{fixed\_aim\_axes}=\{\}
 \right)
 $$
 
@@ -482,7 +482,7 @@ $$
 候选本地轴集合：
 
 $$
-\mathcal{A}=\{[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]\}
+A=\{[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]\}
 $$
 
 对 child bone $j$，期望解剖方向为 $e_j$，来自 `_ANATOMICAL_WORLD_DIRECTIONS`，归一化：
@@ -491,10 +491,10 @@ $$
 \hat{e}_j=\frac{e_j}{\|e_j\|}
 $$
 
-父节点 global rotation 为 $Q_t(\pi(j))$。每个候选轴 $a\in\mathcal{A}$ 的得分：
+父节点 global rotation 为 $Q_t(\pi(j))$。每个候选轴 $a\in A$ 的得分：
 
 $$
-\operatorname{score}(a)=
+score(a)=
 \frac{1}{T}\sum_{t=0}^{T-1}
 \left(R(Q_t(\pi(j)))a\right)^\top\hat{e}_j
 $$
@@ -502,7 +502,7 @@ $$
 选择：
 
 $$
-a_j^\*=\arg\max_{a\in\mathcal{A}}\operatorname{score}(a)
+a_j^\*=argmax_{a\in A} score(a)
 $$
 
 ### 10.2 从 global rotation 构造 positions
@@ -550,10 +550,10 @@ $$
 随后调用：
 
 $$
-\operatorname{fit\_positions\_to\_vrm}
+fit\_positions\_to\_vrm
 \left(
 X,
-\mathrm{world\_basis}=\texttt{identity\_y\_up}
+\mathrm{world\_basis}=\mathrm{identity\_y\_up}
 \right)
 $$
 
@@ -568,21 +568,21 @@ S_{\mathrm{output}}=S_{\mathrm{position\_fit}}
 $$
 
 $$
-P^{\mathrm{target}}=\operatorname{FK}(S_{\mathrm{output}},\bar{o})
+P^{\mathrm{target}}=FK(S_{\mathrm{output}},\bar{o})
 $$
 
 metadata 记录：
 
 $$
-\mathrm{retarget\_mode}=\texttt{position\_fit\_to\_vrm}
+\mathrm{retarget\_mode}=\mathrm{position\_fit\_to\_vrm}
 $$
 
 $$
-\mathrm{rotation\_6d\_layout}=\texttt{row\_major\_first\_two\_rows}
+\mathrm{rotation\_6d\_layout}=\mathrm{row\_major\_first\_two\_rows}
 $$
 
 $$
-\mathrm{rotation\_space}=\texttt{global\_6d\_converted\_to\_parent\_local\_quaternions}
+\mathrm{rotation\_space}=\mathrm{global\_6d\_converted\_to\_parent\_local\_quaternions}
 $$
 
 最后一个字段描述了中间计算；当前 output sequence 仍以 positions fitting 为准。
@@ -590,7 +590,7 @@ $$
 hand 输出：
 
 $$
-Q^{\mathcal{H},\mathrm{output}}=I^{\mathcal{H}}
+Q^{H,\mathrm{output}}=I^{H}
 $$
 
 这是当前实现边界，后续若要让 SuSu 手指驱动 VRM，需要在 `fit_positions_to_vrm()` 输出 sequence 后重新注入 `hand` quaternions 或另写 direct body/hand retarget。
@@ -606,7 +606,7 @@ X^{\mathrm{native}}=\alpha_{\mathrm{pos}}\mathrm{positions}
 $$
 
 $$
-B_{\mathrm{pos}}=\operatorname{body\_positions\_from\_fk\_positions}(X^{\mathrm{native}},\mathcal{M})
+B_{\mathrm{pos}}=body\_positions\_from\_fk\_positions(X^{\mathrm{native}},M)
 $$
 
 调用 `source_positions_normalized()`：
@@ -627,7 +627,7 @@ $$
 若无 positions：
 
 $$
-X=\operatorname{positions\_from\_global\_rotations}(r,Q^{\mathrm{body,global}})
+X=positions\_from\_global\_rotations(r,Q^{\mathrm{body,global}})
 $$
 
 然后只做 source preview scale 和 root center：
@@ -643,7 +643,7 @@ $$
 这条 source preview 不再额外做 world basis 旋转，metadata 中写：
 
 $$
-\mathrm{declared\_world\_basis}=\texttt{identity\_y\_up}
+\mathrm{declared\_world\_basis}=\mathrm{identity\_y\_up}
 $$
 
 ## 13. 当前实现的风险边界
@@ -676,14 +676,14 @@ $$
 4. 当前 output sequence 不是直接使用 SuSu hand local quats：
 
 $$
-Q^{\mathcal{H},\mathrm{output}}=I^{\mathcal{H}}
+Q^{H,\mathrm{output}}=I^{H}
 $$
 
 5. 有 positions 时，positions 优先级高于 6D rotation：
 
 $$
-\texttt{positions}\ \mathrm{available}
+\mathrm{positions}\ \mathrm{available}
 \Rightarrow
-S_{\mathrm{output}}=\operatorname{fit\_positions\_to\_vrm}(\mathrm{positions})
+S_{\mathrm{output}}=fit\_positions\_to\_vrm(\mathrm{positions})
 $$
 
