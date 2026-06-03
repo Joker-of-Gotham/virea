@@ -154,7 +154,7 @@ $$
 \mathrm{WorldBasis}=\mathrm{ZUpToYUp}
 $$
 
-source rest offsets 在当前构造中是 `DEFAULT_REST_OFFSETS`，记作 $o_j^{\mathrm{src}}$。target rest offsets 为 $\bar{o}_j$，可能来自 VRM rest inspection，也可能是默认模板。
+source rest offsets 在当前构造中是 `DEFAULT_REST_OFFSETS`，记作 $o_j^{\mathrm{src}}$。target rest offsets 为 $o_j^{T}$，可能来自 VRM rest inspection，也可能是默认模板。
 
 basis 矩阵：
 
@@ -173,7 +173,7 @@ $$
 
 $$
 \lambda=
-\frac{\sum_{C\in K}\sum_{j\in C}\|\bar{o}_j\|_2}
+\frac{\sum_{C\in K}\sum_{j\in C}\|o_j^{T}\|_2}
 {\sum_{C\in K}\sum_{j\in C}\|o_j^{\mathrm{src}}\|_2}
 $$
 
@@ -257,7 +257,7 @@ $$
 target child offset：
 
 $$
-v_j=\bar{o}_{\chi(j)}
+v_j=o_{\chi(j)}^{T}
 $$
 
 correction：
@@ -341,7 +341,7 @@ $$
 target positions：
 
 $$
-P^{\mathrm{target}}=FK(S,\bar{o})
+P^{\mathrm{target}}=FK(S,o^{T})
 $$
 
 `CanonicalResult` 中：

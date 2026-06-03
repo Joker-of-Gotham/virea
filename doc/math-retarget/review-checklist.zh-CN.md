@@ -79,7 +79,7 @@ $$
 rest correction：
 
 $$
-c_j=Rot(\bar{o}_{\chi(j)}\to o_{\chi(j)}^{\mathrm{src}})
+c_j=Rot(o_{\chi(j)}^{T}\to o_{\chi(j)}^{\mathrm{src}})
 $$
 
 $$
@@ -93,7 +93,7 @@ $$
 q_t^j=
 Rot
 \left(
-\bar{o}_{\chi(j)}
+o_{\chi(j)}^{T}
 \to
 R(Q_t(\pi(j))^{-1})(X_t(\chi(j))-X_t(j))
 \right)

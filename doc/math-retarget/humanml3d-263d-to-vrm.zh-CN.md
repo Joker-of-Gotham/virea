@@ -152,7 +152,7 @@ $$
 
 $$
 X_{\mathrm{fallback}}=
-FK(S_{\mathrm{fallback}},\bar{o})_{[:,0:22]}
+FK(S_{\mathrm{fallback}},o^{T})_{[:,0:22]}
 $$
 
 names：
@@ -288,7 +288,7 @@ scale：
 
 $$
 \lambda=
-\frac{\sum_{C\in K}\sum_{j\in C}\|\bar{o}_j\|}
+\frac{\sum_{C\in K}\sum_{j\in C}\|o_j^{T}\|}
 {\sum_{C\in K}\sum_{j\in C}\|X'_0(j)-X'_0(\pi_C(j))\|}
 $$
 
@@ -321,10 +321,10 @@ $$
 target spine rest offset：
 
 $$
-\bar{o}_{\mathrm{spine}}
+o_{\mathrm{spine}}^{T}
 $$
 
-若 $\|\bar{o}_{\mathrm{spine}}\|\ge10^{-6}$，每帧计算：
+若 $\|o_{\mathrm{spine}}^{T}\|\ge10^{-6}$，每帧计算：
 
 $$
 d_t^{\mathrm{spine}}=Y_t(\mathrm{spine})-Y_t(\mathrm{hips})
@@ -333,7 +333,7 @@ $$
 若 $\|d_t^{\mathrm{spine}}\|\ge10^{-6}$：
 
 $$
-q_t^{\mathrm{root}}=Rot(\bar{o}_{\mathrm{spine}}\to d_t^{\mathrm{spine}})
+q_t^{\mathrm{root}}=Rot(o_{\mathrm{spine}}^{T}\to d_t^{\mathrm{spine}})
 $$
 
 否则：
@@ -384,7 +384,7 @@ $$
 局部旋转：
 
 $$
-q_t^j=Rot(\bar{o}_{\chi(j)}\to d_t^{\mathrm{local}})
+q_t^j=Rot(o_{\chi(j)}^{T}\to d_t^{\mathrm{local}})
 $$
 
 world rotation 递推：
@@ -410,7 +410,7 @@ $$
 target positions：
 
 $$
-P^{\mathrm{target}}=FK(S,\bar{o})
+P^{\mathrm{target}}=FK(S,o^{T})
 $$
 
 metadata：

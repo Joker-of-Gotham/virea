@@ -16,7 +16,7 @@ $$
 F=\{\mathrm{hips}\}\cup C\cup H
 $$
 
-其中 $N_C=21$，$N_H=30$。父节点映射为 $\pi(j)$，primary child 映射为 $\chi(j)$，target rest offset 为 $\bar{o}_j$，source rest offset 为 $o_j^{\mathrm{src}}$。
+其中 $N_C=21$，$N_H=30$。父节点映射为 $\pi(j)$，primary child 映射为 $\chi(j)$，target rest offset 为 $o_j^{T}$，source rest offset 为 $o_j^{\mathrm{src}}$。
 
 每一帧 canonical motion 为：
 
@@ -75,7 +75,7 @@ q_t^{\mathrm{root,basis}}=q(B)q_t^{\mathrm{root,src}}
 $$
 
 $$
-c_j=Rot(\bar{o}_{\chi(j)}\to o_{\chi(j)}^{\mathrm{src}})
+c_j=Rot(o_{\chi(j)}^{T}\to o_{\chi(j)}^{\mathrm{src}})
 $$
 
 $$
@@ -114,7 +114,7 @@ r_t=X''_t(\mathrm{hips})-X''_0(\mathrm{hips})
 $$
 
 $$
-q_t^{\mathrm{root}}=Rot(\bar{o}_{\mathrm{spine}}\to X''_t(\mathrm{spine})-X''_t(\mathrm{hips}))
+q_t^{\mathrm{root}}=Rot(o_{\mathrm{spine}}^{T}\to X''_t(\mathrm{spine})-X''_t(\mathrm{hips}))
 $$
 
 对每个 core bone $j$：
@@ -123,7 +123,7 @@ $$
 q_t^j=
 Rot
 \left(
-\bar{o}_{\chi(j)}
+o_{\chi(j)}^{T}
 \to
 R(Q_t(\pi(j))^{-1})(X''_t(\chi(j))-X''_t(j))
 \right)

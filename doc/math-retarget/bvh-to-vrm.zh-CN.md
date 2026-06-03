@@ -194,7 +194,7 @@ scale：
 
 $$
 \lambda=
-\frac{\sum_{C\in K}\sum_{j\in C}\|\bar{o}_j\|}
+\frac{\sum_{C\in K}\sum_{j\in C}\|o_j^{T}\|}
 {\sum_{C\in K}\sum_{j\in C}\|o_j^{\mathrm{src}}\|}
 $$
 
@@ -214,7 +214,7 @@ $$
 rest correction：
 
 $$
-c_j=Rot(\bar{o}_{\chi(j)}\to o_{\chi(j)}^{\mathrm{src}})
+c_j=Rot(o_{\chi(j)}^{T}\to o_{\chi(j)}^{\mathrm{src}})
 $$
 
 $$
@@ -247,7 +247,7 @@ $$
 processed positions：
 
 $$
-P^{\mathrm{target}}=FK(S,\bar{o})
+P^{\mathrm{target}}=FK(S,o^{T})
 $$
 
 fps 保存在 `RawClip.motion["fps"]` 和 `SampleRef.fps` 中。播放时间应满足：

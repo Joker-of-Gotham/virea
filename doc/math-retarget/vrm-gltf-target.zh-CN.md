@@ -16,7 +16,7 @@ $$
 F=\{\mathrm{hips}\}\cup C\cup H,\qquad N_F=52
 $$
 
-父节点映射由 `CANONICAL_PARENT` 给出，记作 $\pi(j)$。目标 rest offset 由 `target_rest_offsets_map()` 给出，记作 $\bar{o}_j\in\mathbb{R}^3$。如果没有外部 VRM rest template，$\bar{o}_j$ 退化为 `DEFAULT_REST_OFFSETS`。
+父节点映射由 `CANONICAL_PARENT` 给出，记作 $\pi(j)$。目标 rest offset 由 `target_rest_offsets_map()` 给出，记作 $o_j^{T}\in\mathbb{R}^3$。如果没有外部 VRM rest template，$o_j^{T}$ 退化为 `DEFAULT_REST_OFFSETS`。
 
 每一帧 canonical sequence 的维度由 `FRAME_DIM` 定义：
 
@@ -261,7 +261,7 @@ $$
 `forward_kinematics_from_sequence()` 先解包 $S$，再把每个 canonical bone 的局部四元数放入 `local_quats`，最后用 `target_rest_offsets_map()` 计算：
 
 $$
-P^{\mathrm{target}}=FK(S,\bar{o})
+P^{\mathrm{target}}=FK(S,o^{T})
 $$
 
 这就是 processed/after preview 和 VRM target positions 的来源。
@@ -343,11 +343,11 @@ $$
 
 ### 9.1 从 rest offsets 估计
 
-`_target_scale_from_rest_offsets(source_rest_offsets)` 用于 direct quaternion retarget。稳定链集合为 `STABLE_SCALE_CHAINS`，记为 $K$。每条链 $C\in K$ 是若干骨骼名的序列。source rest offset 为 $o_j^{\mathrm{src}}$，target rest offset 为 $\bar{o}_j$：
+`_target_scale_from_rest_offsets(source_rest_offsets)` 用于 direct quaternion retarget。稳定链集合为 `STABLE_SCALE_CHAINS`，记为 $K$。每条链 $C\in K$ 是若干骨骼名的序列。source rest offset 为 $o_j^{\mathrm{src}}$，target rest offset 为 $o_j^{T}$：
 
 $$
 \lambda_{\mathrm{rest}}=
-\frac{\sum_{C\in K}\sum_{j\in C}\|\bar{o}_j\|_2}
+\frac{\sum_{C\in K}\sum_{j\in C}\|o_j^{T}\|_2}
 {\sum_{C\in K}\sum_{j\in C}\|o_j^{\mathrm{src}}\|_2}
 $$
 
@@ -359,7 +359,7 @@ $$
 
 $$
 \lambda_{\mathrm{pos}}=
-\frac{\sum_{C\in K}\sum_{j\in C}\|\bar{o}_j\|_2}
+\frac{\sum_{C\in K}\sum_{j\in C}\|o_j^{T}\|_2}
 {\sum_{C\in K}\sum_{j\in C}\|P_0(j)-P_0(\pi_C(j))\|_2}
 $$
 
@@ -378,7 +378,7 @@ $$
 target child offset：
 
 $$
-v_j=\bar{o}_{\chi(j)}
+v_j=o_{\chi(j)}^{T}
 $$
 
 correction 定义为：
@@ -468,7 +468,7 @@ $$
 第六步用 target rest offsets 做 FK：
 
 $$
-P^{\mathrm{target}}=FK(S,\bar{o})
+P^{\mathrm{target}}=FK(S,o^{T})
 $$
 
 函数返回的 mode 固定为：
@@ -513,7 +513,7 @@ $$
 Y_t(\mathrm{hips})=r_t
 $$
 
-第五步 root rotation。若 spine offset $\bar{o}_{\mathrm{spine}}$ 有效：
+第五步 root rotation。若 spine offset $o_{\mathrm{spine}}^{T}$ 有效：
 
 $$
 d_t^{\mathrm{spine}}=Y_t(\mathrm{spine})-Y_t(\mathrm{hips})
@@ -522,7 +522,7 @@ $$
 当 $\|d_t^{\mathrm{spine}}\|\ge 10^{-6}$：
 
 $$
-q_t^{\mathrm{root}}=Rot(\bar{o}_{\mathrm{spine}}\to d_t^{\mathrm{spine}})
+q_t^{\mathrm{root}}=Rot(o_{\mathrm{spine}}^{T}\to d_t^{\mathrm{spine}})
 $$
 
 否则保持单位四元数。
@@ -542,7 +542,7 @@ $$
 局部旋转：
 
 $$
-q_t^j=Rot(\bar{o}_{\chi(j)}\to d_t^{\mathrm{local}})
+q_t^j=Rot(o_{\chi(j)}^{T}\to d_t^{\mathrm{local}})
 $$
 
 世界旋转递推：

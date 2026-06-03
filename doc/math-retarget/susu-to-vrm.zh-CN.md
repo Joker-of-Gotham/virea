@@ -443,7 +443,7 @@ r_t=X''_t(\mathrm{hips})-X''_0(\mathrm{hips})
 $$
 
 $$
-q_t^{\mathrm{root}}=Rot(\bar{o}_{\mathrm{spine}}\to X''_t(\mathrm{spine})-X''_t(\mathrm{hips}))
+q_t^{\mathrm{root}}=Rot(o_{\mathrm{spine}}^{T}\to X''_t(\mathrm{spine})-X''_t(\mathrm{hips}))
 $$
 
 对 core bone：
@@ -452,7 +452,7 @@ $$
 q_t^j=
 Rot
 \left(
-\bar{o}_{\chi(j)}
+o_{\chi(j)}^{T}
 \to
 R(Q_t(\pi(j))^{-1})(X''_t(\chi(j))-X''_t(j))
 \right)
@@ -570,7 +570,7 @@ S_{\mathrm{output}}=S_{\mathrm{PositionFit}}
 $$
 
 $$
-P^{\mathrm{target}}=FK(S_{\mathrm{output}},\bar{o})
+P^{\mathrm{target}}=FK(S_{\mathrm{output}},o^{T})
 $$
 
 metadata 记录：

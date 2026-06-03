@@ -268,7 +268,7 @@ scale：
 
 $$
 \lambda=
-\frac{\sum_{C\in K}\sum_{j\in C}\|\bar{o}_j\|}
+\frac{\sum_{C\in K}\sum_{j\in C}\|o_j^{T}\|}
 {\sum_{C\in K}\sum_{j\in C}\|o_j^{\mathrm{src}}\|}
 $$
 
@@ -287,7 +287,7 @@ $$
 body correction：
 
 $$
-c_j^{\mathrm{body}}=Rot(\bar{o}_{\chi(j)}\to o_{\chi(j)}^{\mathrm{body,src}})
+c_j^{\mathrm{body}}=Rot(o_{\chi(j)}^{T}\to o_{\chi(j)}^{\mathrm{body,src}})
 $$
 
 body target local quaternion：
@@ -306,7 +306,7 @@ $$
 hand correction：
 
 $$
-c_k^{\mathrm{hand}}=Rot(\bar{o}_{\chi(k)}\to o_{\chi(k)}^{\mathrm{hand,src}})
+c_k^{\mathrm{hand}}=Rot(o^{T}_{\chi(k)}\to o_{\chi(k)}^{\mathrm{hand,src}})
 $$
 
 hand target local quaternion 使用 body 与 hand correction 合并后的父 correction：
@@ -343,7 +343,7 @@ $$
 target positions：
 
 $$
-P^{\mathrm{target}}=FK(S,\bar{o})
+P^{\mathrm{target}}=FK(S,o^{T})
 $$
 
 metadata：
